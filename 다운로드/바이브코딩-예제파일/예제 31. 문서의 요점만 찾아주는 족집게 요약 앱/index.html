@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Summarizer</title>
+    <link rel="stylesheet" href="style.css">
+
+    <!-- PDF.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+
+    <!-- Mammoth.js for DOCX -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+
+    <!-- JSZip for PPTX -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+</head>
+
+<body>
+    <header>
+        <div class="header-left">
+            <a href="https://nanalab.kr/apps" class="logo-link">
+                <img src="https://cdn.jsdelivr.net/gh/NaNaCompany/src_cdn@main/logo/logo.png" alt="NanaLab Logo"
+                    class="logo">
+            </a>
+        </div>
+        <div class="header-right">
+            <h1>Document Summarizer</h1>
+        </div>
+    </header>
+
+    <main>
+        <div class="hero-section">
+            <h1 class="hero-title">Document Summarizer</h1>
+            <p class="hero-subtitle">Upload your document files and get a quick summary of key points.</p>
+        </div>
+
+        <div class="container">
+            <div id="drop-zone" class="drop-zone">
+                <div class="drop-zone-content">
+                    <svg class="upload-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 16L12 8" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                        <path d="M9 11L12 8 15 11" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                        <path d="M8 16H16" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                            stroke-linejoin="round" />
+                        <path
+                            d="M15 4H9C7.89543 4 7 4.89543 7 6V18C7 19.1046 7.89543 20 9 20H15C16.1046 20 17 19.1046 17 18V6C17 4.89543 16.1046 4 15 4Z"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    <p class="primary-text">Drag & Drop file here</p>
+                    <p class="secondary-text">or click to browse</p>
+                    <p class="file-types">Supports PDF, DOCX, PPTX</p>
+                    <p class="note-text">* Page numbers available for PDF & PPTX</p>
+                </div>
+                <input type="file" id="file-input" accept=".pdf,.docx,.pptx,.ppt" hidden>
+            </div>
+
+            <div id="loading" class="loading hidden">
+                <div class="spinner"></div>
+                <p>Analyzing document...</p>
+            </div>
+
+            <div id="result-section" class="result-section hidden">
+                <div class="summary-header">
+                    <h2>Summary</h2>
+                    <span id="file-name-display" class="file-tag">filename.pdf</span>
+                </div>
+
+                <div class="controls-container">
+                    <label for="summary-length">Length: <span id="length-value">1</span> sentence(s)</label>
+                    <input type="range" id="summary-length" min="1" max="5" value="1" step="1">
+                </div>
+
+                <div class="summary-content" id="summary-content">
+                    <!-- Summary will be injected here -->
+                </div>
+                <button id="reset-btn" class="reset-btn">Summarize Another Document</button>
+            </div>
+        </div>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

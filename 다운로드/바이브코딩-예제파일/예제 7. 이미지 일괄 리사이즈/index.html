@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Image Resizer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+</head>
+
+<body>
+    <header class="app-header">
+        <a href="https://nanalab.kr" class="logo-link">
+            <img src="logo.png" alt="NanaLab Logo" class="logo">
+        </a>
+        <h1 class="app-title">Smart Image Resizer</h1>
+    </header>
+
+    <div class="hero-section">
+        <h1 class="hero-title">Secure & Smart Image Resizing</h1>
+        <p class="hero-subtitle">All files are processed in your browser, and no data is ever leaked externally.</p>
+    </div>
+
+    <main class="app-main">
+        <section class="upload-section" id="drop-zone">
+            <div class="upload-content">
+                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    class="upload-icon">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                <p class="upload-text">Drag & Drop your files or</p>
+                <button class="btn btn-primary" id="file-select-btn">Select Files</button>
+                <input type="file" id="file-input" multiple accept="image/*" hidden>
+            </div>
+        </section>
+
+        <section class="controls-section">
+            <div class="control-group">
+                <label class="control-label">Image Size (Long Axis)</label>
+                <div class="size-options">
+                    <button class="size-btn active" data-size="origin">Origin</button>
+                    <button class="size-btn" data-size="600">600</button>
+                    <button class="size-btn" data-size="800">800</button>
+                    <button class="size-btn" data-size="1200">1200</button>
+                    <button class="size-btn" data-size="1600">1600</button>
+                    <button class="size-btn" id="custom-size-btn">Custom</button>
+                </div>
+                <div class="custom-size-input hidden" id="custom-size-container">
+                    <input type="number" id="custom-long-side" placeholder="px" min="1">
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">Aspect Ratio</label>
+                <div class="ratio-options">
+                    <button class="ratio-btn active" data-ratio="1:1">1:1</button>
+                    <button class="ratio-btn" data-ratio="3:4">3:4</button>
+                    <button class="ratio-btn" data-ratio="4:3">4:3</button>
+                    <button class="ratio-btn" data-ratio="9:16">9:16</button>
+                    <button class="ratio-btn" data-ratio="16:9">16:9</button>
+                    <button class="ratio-btn" id="custom-ratio-btn">Custom</button>
+                </div>
+                <div class="custom-ratio-input hidden" id="custom-ratio-container">
+                    <input type="number" id="custom-width" placeholder="W" min="1">
+                    <span>:</span>
+                    <input type="number" id="custom-height" placeholder="H" min="1">
+                </div>
+            </div>
+
+            <label class="control-label">Resize Mode</label>
+            <div class="mode-options">
+                <label class="radio-label">
+                    <input type="radio" name="resize-mode" value="padding" checked>
+                    <span class="radio-custom">Padding (Fill)</span>
+                </label>
+                <label class="radio-label">
+                    <input type="radio" name="resize-mode" value="crop">
+                    <span class="radio-custom">Crop (Fit)</span>
+                </label>
+            </div>
+
+            <div class="control-group" id="bg-color-control">
+                <label class="control-label">Background Color</label>
+                <div class="color-picker-wrapper">
+                    <input type="color" id="bg-color-input" value="#ffffff">
+                    <span id="bg-color-hex">#FFFFFF</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="results-section hidden" id="results-section">
+            <div class="results-header">
+                <h2>Task List</h2>
+                <div class="results-actions">
+                    <button class="btn btn-primary" id="start-process-btn">
+                        Start Processing
+                    </button>
+                    <button class="btn btn-success hidden" id="download-all-btn">
+                        Download All (ZIP)
+                    </button>
+                </div>
+            </div>
+            <div class="image-list" id="image-list">
+                <!-- Image items will be added here -->
+            </div>
+        </section>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

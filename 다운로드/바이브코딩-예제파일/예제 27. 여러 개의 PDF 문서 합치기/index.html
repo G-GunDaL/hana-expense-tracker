@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDFMerge | Premium PDF Combiner</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts for Premium Look -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- PDF Lib for Client-side PDF Merging -->
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+</head>
+
+<body>
+    <div class="background-mesh"></div>
+
+    <main class="container">
+        <header class="app-header">
+            <a href="https://nanalab.kr/apps" class="logo-link">
+                <img src="https://cdn.jsdelivr.net/gh/NaNaCompany/src_cdn@latest/logo/logo.png" alt="NaNaLab Logo"
+                    class="header-logo">
+            </a>
+            <div class="header-title">Merge PDF</div>
+        </header>
+
+        <div class="hero-section">
+            <h2 class="hero-title">Merge Your PDFs!</h2>
+            <p class="hero-desc">Drag and drop your files in the box below to combine them into one.</p>
+            <div class="privacy-notice">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                <span>100% Secure. All processing happens locally on your device. No data is sent to any server.</span>
+            </div>
+        </div>
+
+        <div class="card glass-effect">
+            <div id="drop-zone" class="drop-zone">
+                <div class="icon-container">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                            d="M7 10V9C7 6.23858 9.23858 4 12 4C14.7614 4 17 6.23858 17 9V10C19.2091 10 21 11.7909 21 14C21 15.4806 20.1956 16.8084 19 17.5M7 10C4.79086 10 3 11.7909 3 14C3 15.4806 3.8044 16.8084 5 17.5M7 10C7.43285 10 7.84965 10.0688 8.24254 10.1948M12 12V21M12 12L15 15M12 12L9 15"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </div>
+                <h3>Drag & Drop PDF files here</h3>
+                <p>or click to browse</p>
+                <input type="file" id="file-input" multiple hidden accept=".pdf">
+                <button type="button" class="btn-secondary" id="browse-btn">Browse Files</button>
+            </div>
+
+            <div id="error-container" class="error-container hidden">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                        d="M12 9V14M12 17.5V18M12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12C22 17.5228 17.5228 22 12 22Z"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+                <span id="error-message">Only PDF files are supported.</span>
+            </div>
+
+            <div id="file-list-container" class="file-list-container hidden">
+                <h4>Selected Files <span id="file-count">(0)</span></h4>
+                <ul id="file-list" class="file-list">
+                    <!-- File items will be injected here -->
+                </ul>
+            </div>
+
+            <div class="actions">
+                <button id="merge-btn" class="btn-primary" disabled>
+                    <span>Merge Files</span>
+                    <div class="loader hidden"></div>
+                </button>
+                <button id="clear-btn" class="btn-text hidden">Clear All</button>
+            </div>
+        </div>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

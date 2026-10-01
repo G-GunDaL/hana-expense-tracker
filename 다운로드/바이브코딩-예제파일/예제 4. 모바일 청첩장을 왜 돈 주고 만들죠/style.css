@@ -1,0 +1,370 @@
+:root {
+    --primary-color: #7d8471; /* Sage Green tone */
+    --secondary-color: #f4f1ea; /* Soft Beige */
+    --accent-color: #d4a373; /* Gold/Bronze */
+    --text-color: #333333;
+    --text-light: #666666;
+    --bg-color: #ffffff;
+    --font-main: 'Nanum Myeongjo', serif;
+    --font-en: 'Playfair Display', serif;
+    --font-base: 'Gowun Dodum', sans-serif;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: var(--font-base);
+    background-color: var(--secondary-color);
+    color: var(--text-color);
+    line-height: 1.6;
+    max-width: 480px; /* Mobile width constraint */
+    margin: 0 auto;
+    box-shadow: 0 0 20px rgba(0,0,0,0.05);
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0IiBoZWlnaHQ9IjQiPgo8cmVjdCB3aWR0aD0iNCIgaGVpZ2h0PSI0IiBmaWxsPSIjZjRmMWVhIi8+CjxyZWN0IHdpZHRoPSIxIiBoZWlnaHQ9IjEiIGZpbGw9IiNmZmYiLz4KPC9zdmc+'); /* Subtle texture */
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+    opacity: 0; 
+    transition: opacity 1s ease-out, transform 1s ease-out;
+    transform: translateY(20px);
+}
+
+.fade-in.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Typography Utility */
+h1, h2, h3 {
+    font-family: var(--font-en);
+    font-weight: 700;
+    color: var(--text-color);
+}
+
+.section-title {
+    text-align: center;
+    font-size: 1.5rem;
+    margin-bottom: 2rem;
+    color: var(--primary-color);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    position: relative;
+    padding-bottom: 10px;
+}
+
+.section-title::after {
+    content: '';
+    display: block;
+    width: 30px;
+    height: 1px;
+    background: var(--primary-color);
+    margin: 10px auto 0;
+}
+
+/* Section Common */
+section {
+    padding: 3rem 1.5rem;
+    background: var(--bg-color);
+    margin-bottom: 0;
+}
+
+/* Hero Section */
+#hero {
+    padding: 4rem 1.5rem;
+    text-align: center;
+    background-color: var(--bg-color);
+    border-bottom-left-radius: 50px;
+    border-bottom-right-radius: 50px;
+    overflow: hidden;
+    position: relative;
+}
+
+.date-highlight {
+    font-family: var(--font-en);
+    color: var(--primary-color);
+    letter-spacing: 2px;
+    margin-bottom: 1rem;
+    font-weight: bold;
+}
+
+.main-title {
+    font-size: 2rem;
+    line-height: 1.2;
+    margin-bottom: 2rem;
+    color: var(--text-color);
+}
+
+.names {
+    font-family: var(--font-main);
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.names .divider {
+    color: var(--accent-color);
+    margin: 0 0.5rem;
+}
+
+.location-text {
+    color: var(--text-light);
+    font-size: 0.9rem;
+    margin-bottom: 2rem;
+}
+
+.hero-image-container {
+    width: 100%;
+    border-radius: 200px 200px 0 0;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    transform: scale(0.95);
+    transition: transform 0.5s ease;
+}
+
+.hero-img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* Invitation Section */
+#invitation {
+    background-color: var(--secondary-color);
+    text-align: center;
+}
+
+.message-box p {
+    margin-bottom: 0.5rem;
+    font-family: var(--font-main);
+}
+
+.emphasis-text {
+    color: var(--primary-color);
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.family-names {
+    margin-top: 3rem;
+    font-size: 1rem;
+}
+
+.family-names .side {
+    margin-bottom: 0.5rem;
+}
+
+.family-names .parent {
+    font-weight: bold;
+}
+
+.family-names .me {
+    font-size: 1.1rem;
+    font-weight: bold;
+    margin-left: 0.3rem;
+}
+
+/* Gallery Section */
+.gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+}
+
+.gallery-item {
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+
+.gallery-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.gallery-item img:hover {
+    transform: scale(1.05);
+}
+
+/* Countdown Section */
+#countdown {
+    text-align: center;
+    background: var(--bg-color);
+}
+
+.timer-display {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 1.5rem;
+    font-family: var(--font-en);
+}
+
+.time-unit {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 50px;
+}
+
+.time-unit span:first-child {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-color);
+}
+
+.time-unit .label {
+    font-size: 0.7rem;
+    color: var(--primary-color);
+    letter-spacing: 1px;
+}
+
+.separator {
+    font-size: 1.5rem;
+    color: var(--accent-color);
+    padding-bottom: 1.5rem;
+}
+
+.wedding-date {
+    font-size: 0.95rem;
+    color: var(--text-light);
+}
+
+/* Location Section */
+#location {
+    text-align: center;
+    background: var(--secondary-color);
+}
+
+.venue-name {
+    font-weight: bold;
+    margin-bottom: 1rem;
+}
+
+.map-placeholder {
+    width: 100%;
+    height: 250px;
+    background-color: #eee;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #999;
+    border-radius: 12px;
+}
+
+/* Contact Section */
+#contact {
+    text-align: center;
+    padding-bottom: 5rem;
+}
+
+.contact-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 3rem;
+}
+
+.btn {
+    display: inline-block;
+    padding: 12px 24px;
+    border-radius: 50px;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+}
+
+.btn-groom {
+    background-color: #8da399; /* Muted Green */
+    color: white;
+}
+
+.btn-bride {
+    background-color: #e6b8af; /* Muted Pink */
+    color: white;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.accordion-item {
+    border: 1px solid #eee;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    overflow: hidden;
+}
+
+.accordion-header {
+    width: 100%;
+    padding: 15px;
+    background: white;
+    border: none;
+    text-align: left;
+    font-family: var(--font-base);
+    font-weight: bold;
+    color: var(--text-color);
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.accordion-header::after {
+    content: '+';
+    font-size: 1.2rem;
+}
+
+.accordion-header.active::after {
+    content: '-';
+}
+
+.accordion-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+    background: #fafafa;
+    text-align: center;
+}
+
+.accordion-content p {
+    padding: 15px 0 5px;
+    font-size: 0.9rem;
+}
+
+.copy-btn {
+    margin: 0 0 15px;
+    padding: 5px 15px;
+    border: 1px solid #ddd;
+    background: white;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+/* Footer */
+.footer {
+    text-align: center;
+    padding: 2rem;
+    background: #333;
+    color: rgba(255,255,255,0.6);
+    font-size: 0.8rem;
+}
+
+.footer .copyright {
+    margin-top: 0.5rem;
+    font-family: var(--font-en);
+}

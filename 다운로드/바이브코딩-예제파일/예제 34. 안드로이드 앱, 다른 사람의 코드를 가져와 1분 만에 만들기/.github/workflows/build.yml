@@ -1,0 +1,120 @@
+name: Build Custom Android APK
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: set up JDK 17
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: gradle
+
+    - name: Install Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y imagemagick
+        # Update file permissions
+        chmod +x -R android-webview-template
+
+    - name: Parse Config
+      id: config
+      run: |
+        # Fallback to defaults if grep fails
+        APP_NAME="WebView App"
+        url_line=$(grep "webview_url:" config.yml || echo "")
+        name_line=$(grep "app_name:" config.yml || echo "")
+        
+        if [ ! -z "$name_line" ]; then
+          APP_NAME=$(echo $name_line | cut -d '"' -f 2)
+        fi
+        
+        WEBVIEW_URL="https://example.com"
+        if [ ! -z "$url_line" ]; then
+          WEBVIEW_URL=$(echo $url_line | cut -d '"' -f 2)
+        fi
+        
+        echo "APP_NAME=$APP_NAME" >> $GITHUB_ENV
+        echo "WEBVIEW_URL=$WEBVIEW_URL" >> $GITHUB_ENV
+        
+        echo "::notice::App Name: $APP_NAME"
+        echo "::notice::URL: $WEBVIEW_URL"
+
+    - name: Update App Config
+      run: |
+        STRINGS_XML="android-webview-template/app/src/main/res/values/strings.xml"
+        
+        # Verify file exists
+        ls -l $STRINGS_XML
+        
+        # Use simple sed with | delimiter
+        sed -i "s|<string name=\"app_name\">.*</string>|<string name=\"app_name\">$APP_NAME</string>|g" $STRINGS_XML
+        sed -i "s|<string name=\"webview_url\">.*</string>|<string name=\"webview_url\">$WEBVIEW_URL</string>|g" $STRINGS_XML
+        
+        echo "Updated strings.xml content:"
+        cat $STRINGS_XML
+
+    - name: Generate Icons
+      run: |
+        ICON_SRC="icon.png"
+        RES_PATH="android-webview-template/app/src/main/res"
+        
+        if [ ! -f "$ICON_SRC" ]; then
+            echo "::error::icon.png not found in root directory!"
+            exit 1
+        fi
+
+        echo "Cleaning default icons..."
+        rm -rf $RES_PATH/mipmap-anydpi-v26
+        rm -rf $RES_PATH/drawable/ic_launcher_background.xml
+        rm -rf $RES_PATH/drawable/ic_launcher_foreground.xml
+        # Optional: Clean existing mipmaps to be safe
+        rm -rf $RES_PATH/mipmap-*
+
+        echo "Generating icons..."
+        
+        for dim in 48 72 96 144 192; do
+            case $dim in
+                48) dir="mdpi" ;;
+                72) dir="hdpi" ;;
+                96) dir="xhdpi" ;;
+                144) dir="xxhdpi" ;;
+                192) dir="xxxhdpi" ;;
+            esac
+            
+            target_dir="$RES_PATH/mipmap-$dir"
+            mkdir -p $target_dir
+            
+            convert "$ICON_SRC" -resize ${dim}x${dim} "$target_dir/ic_launcher.png"
+            convert "$ICON_SRC" -resize ${dim}x${dim} "$target_dir/ic_launcher_round.png"
+        done
+        
+        echo "Icons generated."
+
+    - name: Setup Gradle
+      uses: gradle/gradle-build-action@v2
+      with:
+        gradle-version: 8.2
+
+    - name: Build with Gradle
+      run: |
+        cd android-webview-template
+        
+        # Create a dummy properties file if needed, or just run
+        # Run assembleDebug directly
+        gradle assembleDebug --stacktrace
+
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: app-debug
+        path: android-webview-template/app/build/outputs/apk/debug/app-debug.apk

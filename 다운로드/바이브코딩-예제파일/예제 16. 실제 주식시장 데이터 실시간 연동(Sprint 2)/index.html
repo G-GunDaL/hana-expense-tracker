@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>스마트 주식 투자 도우미</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <header class="main-header">
+            <div class="header-content">
+                <div class="logo">
+                    <a href="nanalab.kr" target="_blank"><img src="logo.png" alt="Logo" class="logo-image"></a>
+                    <h1>스마트 주식 투자 도우미<span class="highlight">.</span></h1>
+                </div>
+                <div class="market-status">
+                    <span class="status-dot live"></span>
+                    <span class="status-text">실시간</span>
+                    <span id="current-time"></span>
+                </div>
+            </div>
+        </header>
+
+        <main class="dashboard-grid">
+            <!-- KOSPI -->
+            <div class="card market-card">
+                <div class="card-header">
+                    <div class="symbol-info">
+                        <h2>코스피</h2>
+                        <span class="region">대한민국</span>
+                    </div>
+                    <div class="price-info" id="kospi-price">
+                        <span class="current-price">로딩 중...</span>
+                        <span class="change-percent">--%</span>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="kospiChart"></canvas>
+                </div>
+            </div>
+
+            <!-- KOSDAQ -->
+            <div class="card market-card">
+                <div class="card-header">
+                    <div class="symbol-info">
+                        <h2>코스닥</h2>
+                        <span class="region">대한민국</span>
+                    </div>
+                    <div class="price-info" id="kosdaq-price">
+                        <span class="current-price">로딩 중...</span>
+                        <span class="change-percent">--%</span>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="kosdaqChart"></canvas>
+                </div>
+            </div>
+
+            <!-- JUSIK -->
+            <div class="card market-card">
+                <div class="card-header">
+                    <div class="symbol-info">
+                        <h2>나스닥</h2>
+                        <span class="region">미국</span>
+                    </div>
+                    <div class="price-info" id="nasdaq-price">
+                        <span class="current-price">로딩 중...</span>
+                        <span class="change-percent">--%</span>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="nasdaqChart"></canvas>
+                </div>
+            </div>
+
+            <!-- S&P 500 -->
+            <div class="card market-card">
+                <div class="card-header">
+                    <div class="symbol-info">
+                        <h2>S&P 500</h2>
+                        <span class="region">미국</span>
+                    </div>
+                    <div class="price-info" id="sp500-price">
+                        <span class="current-price">로딩 중...</span>
+                        <span class="change-percent">--%</span>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="sp500Chart"></canvas>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>시장 데이터는 시연용 시뮬레이션 데이터입니다.</p>
+        </footer>
+    </div>
+    <script src="script.js"></script>
+</body>
+
+</html>

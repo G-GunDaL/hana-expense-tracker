@@ -1,0 +1,113 @@
+
+/* Timeline Container */
+.timeline-container {
+    position: relative;
+    width: 100%;
+    height: 60px; /* Thicker strip */
+    background: #e2e8f0;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.timeline-strip {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    overflow: hidden;
+    /* Thumbnails will be injected here as Canvas or IMG */
+}
+
+.timeline-strip canvas {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Masks (Dimmed Areas) */
+.timeline-mask {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6); /* Dark dim */
+    pointer-events: none;
+    z-index: 2;
+    transition: width 0.1s linear;
+}
+
+.mask-left {
+    left: 0;
+    width: 0%; 
+    border-right: 2px solid white; /* Start Handle Indicator */
+}
+
+.mask-right {
+    right: 0;
+    width: 0%;
+    border-left: 2px solid white; /* End Handle Indicator */
+}
+
+/* Interactive Sliders (Invisible but on top) */
+.timeline-slider {
+    position: absolute;
+    top: 50%; /* Center vertically effectively */
+    left: 0;
+    width: 100%;
+    height: 100%; /* Cover full area for easy touch */
+    transform: translateY(-50%);
+    margin: 0;
+    pointer-events: none; /* Let clicks pass... wait */
+    /* We need events to hit the THUMB. */
+    appearance: none;
+    -webkit-appearance: none;
+    background: transparent;
+    z-index: 5;
+}
+
+/* We need distinct thumbs. But standard range input thumbs are tricky to style as "Bars". 
+   Let's keep standard handles but make them transparent or style them nicely.
+   User asked for "Handles at bottom" like reference.
+   Actually, standard range input thumbs are centered.
+   
+   Hack: Make the Thumb a tall bar or invisible touch target with a visual indicator attached to the Mask?
+   Simpler: Use the Mask Borders as the visual indicators (White Lines).
+   Make the Input Thumb invisible but huge for touch capability, or just a small grabber?
+   
+   If I make thumb invisible, user can't see what they grab.
+   Let's make thumb visible: A distinct colored handle at the bottom?
+*/
+
+input[type=range].timeline-slider::-webkit-slider-thumb {
+    pointer-events: auto;
+    -webkit-appearance: none;
+    height: 60px; /* Full height thumb */
+    width: 20px; /* Touch target width */
+    background: transparent;
+    cursor: col-resize;
+    position: relative;
+    z-index: 10;
+}
+
+/* Firefox */
+input[type=range].timeline-slider::-moz-range-thumb {
+    pointer-events: auto;
+    height: 60px;
+    width: 20px;
+    border: none;
+    background: transparent;
+    cursor: col-resize;
+    z-index: 10;
+}
+
+/* Add custom handle visuals using pseudo elements on a container? No, strictly inputs.
+   We will rely on the `.mask` borders (White Lines) to show position.
+   Maybe add a "Gripper" icon? 
+   Let's try to add a pseudo element to the thumb? Not possible standardly.
+   
+   Alternative: Just use the White Line borders of the masks as the visual "Cut Points".
+   And the slider thumbs are just the interaction mechanism.
+*/

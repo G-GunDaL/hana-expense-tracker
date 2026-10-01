@@ -1,0 +1,131 @@
+
+/* Timeline Container */
+.timeline-container {
+    position: relative;
+    width: 100%;
+    height: 60px;
+    background: #e2e8f0;
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+    /* Ensure slider handles are visible */
+    margin-top: 10px; 
+}
+
+.timeline-strip {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    overflow: hidden;
+    border-radius: 6px;
+}
+
+.timeline-strip canvas {
+    width: 100%;
+    height: 100%;
+    object-fit: fill; /* Force fill */
+}
+
+/* Masks (Dimmed Areas) */
+.timeline-mask {
+    position: absolute;
+    top: 0;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.65); /* Darker dim */
+    pointer-events: none;
+    z-index: 2;
+    transition: width 0.05s linear;
+}
+
+.mask-left {
+    left: 0;
+    width: 0%; 
+    border-right: 2px solid #fff; 
+    box-shadow: 1px 0 2px rgba(0,0,0,0.3);
+}
+
+.mask-right {
+    right: 0;
+    width: 0%;
+    border-left: 2px solid #fff;
+    box-shadow: -1px 0 2px rgba(0,0,0,0.3);
+}
+
+/* 
+   Interactive Sliders 
+   We overlay TWO ranges on top of each other.
+   They need to be transparent but clickable.
+*/
+.timeline-slider {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    pointer-events: none; /* Allow click-through to bottom slider? No, we need to interact. */
+    /* Trick: pointer-events: none on track, auto on thumb. */
+    appearance: none;
+    background: transparent;
+    z-index: 10;
+}
+
+/* Webkit Thumbs */
+.timeline-slider::-webkit-slider-thumb {
+    pointer-events: auto; /* Re-enable pointer events for thumb */
+    -webkit-appearance: none;
+    appearance: none;
+    height: 70px; /* Taller than container to stick out? */
+    width: 20px; /* Touch target */
+    background: transparent; /* Invisible grabber? Or stylized? */
+    /* Let's make a visible handle at the bottom */
+    cursor: col-resize;
+    position: relative;
+}
+
+/* 
+   We need VISIBLE handles. 
+   Since we can't easily style the pseudo-element with extensive HTML, 
+   we will use a simple Trick:
+   The ".mask" borders act as the "Visual Lines".
+   The Thumbs are just invisible touch targets centered on those lines.
+   
+   However, for better UX, a "Handle" icon below the bar is nice.
+   But we can't attach it to the Input Thumb easily without shadow DOM tricks.
+   
+   Let's stick to:
+   1. The White Line of the Mask is the "Cut Point".
+   2. The Cursor changes.
+   3. Maybe give the thumb a subtle glowing outline or distinct look if possible.
+   
+   Let's try creating a "Pseudo Handle" via background image on the thumb?
+   Or just a simple white block.
+*/
+
+.timeline-slider::-webkit-slider-thumb {
+    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="70" viewBox="0 0 20 70"><path d="M0,0 H20 V70 H0 Z" fill="rgba(255,255,255,0.01)"/><path d="M10,60 L2,70 H18 L10,60" fill="white"/></svg>') no-repeat center bottom;
+    /* Draws a little arrow at bottom? Scaling might be issue. */
+    /* Simpler: Just a white block */
+    background:  #ffffff;
+    border: 2px solid #555;
+    border-radius: 4px;
+    width: 16px;
+    height: 40px; /* Shorter than full height */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Firefox */
+.timeline-slider::-moz-range-thumb {
+    pointer-events: auto;
+    border: none;
+    background: #ffffff;
+    border: 2px solid #555;
+    border-radius: 4px;
+    width: 16px;
+    height: 40px;
+    cursor: col-resize;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}

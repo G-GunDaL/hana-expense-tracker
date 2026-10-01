@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>생능출판사</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Icons (Phosphor Icons for simplicity or FontAwesome) -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <div class="container header-container">
+            <div class="logo">
+                <a href="#">
+                    <!-- Simple SVG Logo Placeholder -->
+                    <svg width="150" height="40" viewBox="0 0 150 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <text x="0" y="30" fill="#333" font-family="'Noto Sans KR', sans-serif" font-weight="700" font-size="24">생능출판</text>
+                        <path d="M0 35H150" stroke="#FCA311" stroke-width="2"/>
+                    </svg>
+                </a>
+            </div>
+            
+            <nav class="desktop-nav">
+                <ul>
+                    <li><a href="#">생능 소개</a></li>
+                    <li><a href="#">브랜드 안내</a></li>
+                    <li><a href="#">도서정보</a></li>
+                    <li><a href="#">강의지원</a></li>
+                    <li><a href="#">출간지원</a></li>
+                    <li><a href="#">공지사항</a></li>
+                </ul>
+            </nav>
+
+            <div class="header-actions">
+                <button class="icon-btn"><i class="ph ph-magnifying-glass"></i></button>
+                <button class="icon-btn"><i class="ph ph-shopping-cart"></i></button>
+                <div class="auth-links">
+                    <a href="#">로그인</a>
+                    <a href="#">회원가입</a>
+                </div>
+                <!-- Mobile Menu Button -->
+                <button class="menu-btn" id="mobile-menu-btn"><i class="ph ph-list"></i></button>
+            </div>
+        </div>
+        <!-- Mobile Nav -->
+        <nav class="mobile-nav" id="mobile-nav">
+            <ul>
+                <li><a href="#">생능 소개</a></li>
+                <li><a href="#">브랜드 안내</a></li>
+                <li><a href="#">도서정보</a></li>
+                <li><a href="#">강의지원</a></li>
+                <li><a href="#">출간지원</a></li>
+                <li><a href="#">공지사항</a></li>
+                <li><a href="#">로그인</a></li>
+                <li><a href="#">회원가입</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section id="hero">
+            <div class="hero-content">
+                <div class="hero-text">
+                    <div class="badge">영원히 서재에 남을 책을 만든다는 일념으로</div>
+                    <h1>혼과 마음을 담아<br>책을 만드는<br><span class="highlight">생 능 출 판 사</span></h1>
+                    <a href="#" class="btn-link">전체도서목록</a>
+                </div>
+                <!-- Pagination Dots -->
+                <div class="pagination-dots">
+                    <span class="dot active"></span>
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                    <span class="dot"></span>
+                </div>
+            </div>
+            
+            <div class="hero-image">
+                <img src="assets/hero_bg.png" alt="Library Bookshelf">
+            </div>
+        </section>
+    </main>
+
+    <!-- Floating Quick Menu -->
+    <aside class="quick-menu">
+        <div class="quick-item">
+            <div class="icon-box"><i class="ph ph-book-open-text"></i></div>
+            <span>샘플교재<br>신청안내</span>
+        </div>
+        <div class="quick-item">
+            <div class="icon-box"><i class="ph ph-users-three"></i></div>
+            <span>단체구매<br>안내</span>
+        </div>
+        <div class="quick-item">
+            <div class="icon-box"><i class="ph ph-pencil-simple-line"></i></div>
+            <span>원고 접수</span>
+        </div>
+        <div class="quick-item">
+            <div class="icon-box"><i class="ph ph-envelope-simple"></i></div>
+            <span>편집부에<br>메일 보내기</span>
+        </div>
+        <div class="quick-item">
+            <div class="icon-box"><i class="ph ph-map-pin"></i></div>
+            <span>오시는 길</span>
+        </div>
+        <div class="quick-item active">
+            <div class="icon-box"><i class="ph ph-download-simple"></i></div>
+            <span>강의자료<br>다운로드<br>안내</span>
+        </div>
+    </aside>
+
+    <script src="script.js"></script>
+</body>
+</html>

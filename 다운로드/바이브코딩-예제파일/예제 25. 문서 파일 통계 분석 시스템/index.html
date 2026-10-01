@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Analyzer - PDF & DOCX Counter</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Styles -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Libraries -->
+    <!-- PDF.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+    <!-- JSZip (for DOCX structure) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <!-- Mammoth.js (for DOCX text) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+</head>
+
+<body>
+    <div class="background-blob blob-1"></div>
+    <div class="background-blob blob-2"></div>
+
+    <div class="container">
+        <nav class="top-nav">
+            <a href="https://nanalab.kr/apps" class="logo-link">
+                <img src="https://cdn.jsdelivr.net/gh/NaNaCompany/src_cdn@main/logo/logo.png" alt="NanaLab Logo"
+                    class="logo">
+            </a>
+        </nav>
+
+        <header class="hero-header">
+            <h1>Document Analyzer</h1>
+            <p class="subtitle">Upload your PDF or DOCX file to get instant statistics.</p>
+        </header>
+
+        <main>
+            <div id="drop-zone" class="drop-zone">
+                <div class="drop-zone-content">
+                    <i class="fa-solid fa-cloud-arrow-up upload-icon"></i>
+                    <h2>Drag & Drop your file here</h2>
+                    <p>or</p>
+                    <button class="upload-btn" onclick="document.getElementById('file-input').click()">Browse
+                        Files</button>
+                    <input type="file" id="file-input" accept=".pdf,.docx" hidden>
+                    <p class="file-support-info">Supports PDF and DOCX</p>
+                </div>
+            </div>
+
+            <div id="loading" class="loading hidden">
+                <div class="spinner"></div>
+                <p>Analyzing document...</p>
+            </div>
+
+            <div id="result-section" class="result-section hidden">
+                <div class="file-info-card">
+                    <div class="file-icon">
+                        <i class="fa-regular fa-file-lines"></i>
+                    </div>
+                    <div class="file-details">
+                        <h3 id="filename">filename.docx</h3>
+                        <p id="filesize">1.2 MB</p>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon char-icon"><i class="fa-solid fa-font"></i></div>
+                        <div class="stat-content">
+                            <h4>Characters</h4>
+                            <p class="stat-value" id="char-count">0</p>
+                            <span class="stat-sub">(with spaces)</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon char-ns-icon"><i class="fa-solid fa-text-slash"></i></div>
+                        <div class="stat-content">
+                            <h4>Characters</h4>
+                            <p class="stat-value" id="char-no-space-count">0</p>
+                            <span class="stat-sub">(no spaces)</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon word-icon"><i class="fa-solid fa-quote-left"></i></div>
+                        <div class="stat-content">
+                            <h4>Words</h4>
+                            <p class="stat-value" id="word-count">0</p>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon space-icon"><i class="fa-solid fa-arrows-left-right-to-line"></i></div>
+                        <div class="stat-content">
+                            <h4>Spaces</h4>
+                            <p class="stat-value" id="space-count">0</p>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon image-icon"><i class="fa-regular fa-image"></i></div>
+                        <div class="stat-content">
+                            <h4>Images</h4>
+                            <p class="stat-value" id="image-count">0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="reset-btn" id="reset-btn">Analyze Another File</button>
+            </div>
+        </main>
+
+        <footer>
+            <p>Analyzed locally in your browser </p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

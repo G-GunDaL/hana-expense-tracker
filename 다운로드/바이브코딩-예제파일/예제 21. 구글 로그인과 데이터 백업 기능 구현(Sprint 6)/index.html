@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 투자 컨설턴트</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css?v=2">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script
+        src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script
+        src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@0.1.0/dist/chartjs-chart-financial.min.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+
+<body>
+    <div class="sticky-logo-bar">
+        <div class="sticky-content-wrapper">
+            <div class="logo-container">
+                <a href="https://nanalab.kr" target="_blank"><img src="logo.png" alt="Logo" class="logo-image"></a>
+            </div>
+            <div class="header-right-section">
+                <div class="top-status-bar">
+                    <span class="status-dot live"></span>
+                    <span class="status-text">실시간</span>
+                    <span id="current-time"></span>
+                </div>
+                <button id="login-btn" class="login-btn-header">로그인</button>
+            </div>
+        </div>
+    </div>
+    <div class="app-container">
+        <header class="main-header">
+            <div class="header-content">
+                <div class="page-title">
+                    <h1>AI 투자 컨설턴트<span class="highlight">.</span></h1>
+                </div>
+                <!-- Portfolio button removed -->
+            </div>
+        </header>
+
+        <div class="tab-navigation">
+            <button class="tab-nav-btn active" data-tab="tab-search">주식 검색</button>
+            <button class="tab-nav-btn" data-tab="tab-recommend">추천 포트폴리오</button>
+            <button class="tab-nav-btn" data-tab="tab-portfolio">포트폴리오 분석</button>
+            <button id="vip-btn" class="tab-plus-btn" title="탭 추가">+</button>
+        </div>
+
+        <div id="tab-search" class="tab-content active">
+
+            <div class="search-section">
+                <div class="search-container">
+                    <select id="exchange-select">
+                        <option value="">미국</option>
+                        <option value=".KS">코스피</option>
+                        <option value=".KQ">코스닥</option>
+                    </select>
+                    <input type="text" id="stock-code" placeholder="종목 코드 입력" autocomplete="off">
+                    <button id="search-btn">검색</button>
+                </div>
+                <div id="search-error" class="error-message" style="display: none;"></div>
+            </div>
+
+            <section id="search-result-section" class="card market-card" style="display: none; margin-bottom: 24px;">
+                <div class="card-header">
+                    <div class="symbol-info">
+                        <h2 id="search-name">--</h2>
+                        <span id="search-symbol" class="region">--</span>
+                    </div>
+                    <div class="price-action-container" style="display: flex; align-items: center; gap: 1rem;">
+                        <button id="add-to-portfolio-btn" class="action-btn">포트폴리오에 담기</button>
+                        <div class="price-info" id="search-price-info">
+                            <span class="current-price">--</span>
+                            <span class="change-percent">--%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-controls-wrapper">
+                    <div class="chart-controls">
+                        <button class="range-btn" data-range="1d" data-interval="5m">1일</button>
+                        <button class="range-btn" data-range="5d" data-interval="15m">1주</button>
+                        <button class="range-btn" data-range="1mo" data-interval="1d">1달</button>
+                        <button class="range-btn" data-range="6mo" data-interval="1d">6달</button>
+                        <button class="range-btn" data-range="1y" data-interval="1d">1년</button>
+                        <button class="range-btn active" data-range="5y" data-interval="1mo">5년</button>
+                    </div>
+                    <div class="type-controls">
+                        <button class="type-btn" data-type="line">라인</button>
+                        <button class="type-btn active" data-type="candlestick">캔들</button>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <canvas id="searchChart"></canvas>
+                </div>
+            </section>
+
+            <main class="dashboard-grid">
+                <!-- KOSPI -->
+                <div class="card market-card">
+                    <div class="card-header">
+                        <div class="symbol-info">
+                            <h2>코스피</h2>
+                            <span class="region">대한민국</span>
+                        </div>
+                        <div class="price-info" id="kospi-price">
+                            <span class="current-price">로딩 중...</span>
+                            <span class="change-percent">--%</span>
+                        </div>
+                    </div>
+                    <div class="chart-controls-wrapper" data-index-id="kospi">
+                        <div class="chart-controls">
+                            <button class="range-btn active" data-range="1d" data-interval="5m">1일</button>
+                            <button class="range-btn" data-range="5d" data-interval="15m">1주</button>
+                            <button class="range-btn" data-range="1mo" data-interval="1d">1달</button>
+                            <button class="range-btn" data-range="6mo" data-interval="1d">6달</button>
+                            <button class="range-btn" data-range="1y" data-interval="1d">1년</button>
+                            <button class="range-btn" data-range="5y" data-interval="1mo">5년</button>
+                        </div>
+                        <div class="type-controls">
+                            <button class="type-btn" data-type="line">라인</button>
+                            <button class="type-btn active" data-type="candlestick">캔들</button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="kospiChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- KOSDAQ -->
+                <div class="card market-card">
+                    <div class="card-header">
+                        <div class="symbol-info">
+                            <h2>코스닥</h2>
+                            <span class="region">대한민국</span>
+                        </div>
+                        <div class="price-info" id="kosdaq-price">
+                            <span class="current-price">로딩 중...</span>
+                            <span class="change-percent">--%</span>
+                        </div>
+                    </div>
+                    <div class="chart-controls-wrapper" data-index-id="kosdaq">
+                        <div class="chart-controls">
+                            <button class="range-btn active" data-range="1d" data-interval="5m">1일</button>
+                            <button class="range-btn" data-range="5d" data-interval="15m">1주</button>
+                            <button class="range-btn" data-range="1mo" data-interval="1d">1달</button>
+                            <button class="range-btn" data-range="6mo" data-interval="1d">6달</button>
+                            <button class="range-btn" data-range="1y" data-interval="1d">1년</button>
+                            <button class="range-btn" data-range="5y" data-interval="1mo">5년</button>
+                        </div>
+                        <div class="type-controls">
+                            <button class="type-btn" data-type="line">라인</button>
+                            <button class="type-btn active" data-type="candlestick">캔들</button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="kosdaqChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- JUSIK -->
+                <div class="card market-card">
+                    <div class="card-header">
+                        <div class="symbol-info">
+                            <h2>나스닥</h2>
+                            <span class="region">미국</span>
+                        </div>
+                        <div class="price-info" id="nasdaq-price">
+                            <span class="current-price">로딩 중...</span>
+                            <span class="change-percent">--%</span>
+                        </div>
+                    </div>
+                    <div class="chart-controls-wrapper" data-index-id="nasdaq">
+                        <div class="chart-controls">
+                            <button class="range-btn active" data-range="1d" data-interval="5m">1일</button>
+                            <button class="range-btn" data-range="5d" data-interval="15m">1주</button>
+                            <button class="range-btn" data-range="1mo" data-interval="1d">1달</button>
+                            <button class="range-btn" data-range="6mo" data-interval="1d">6달</button>
+                            <button class="range-btn" data-range="1y" data-interval="1d">1년</button>
+                            <button class="range-btn" data-range="5y" data-interval="1mo">5년</button>
+                        </div>
+                        <div class="type-controls">
+                            <button class="type-btn" data-type="line">라인</button>
+                            <button class="type-btn active" data-type="candlestick">캔들</button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="nasdaqChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- S&P 500 -->
+                <div class="card market-card">
+                    <div class="card-header">
+                        <div class="symbol-info">
+                            <h2>S&P 500</h2>
+                            <span class="region">미국</span>
+                        </div>
+                        <div class="price-info" id="sp500-price">
+                            <span class="current-price">로딩 중...</span>
+                            <span class="change-percent">--%</span>
+                        </div>
+                    </div>
+                    <div class="chart-controls-wrapper" data-index-id="sp500">
+                        <div class="chart-controls">
+                            <button class="range-btn active" data-range="1d" data-interval="5m">1일</button>
+                            <button class="range-btn" data-range="5d" data-interval="15m">1주</button>
+                            <button class="range-btn" data-range="1mo" data-interval="1d">1달</button>
+                            <button class="range-btn" data-range="6mo" data-interval="1d">6달</button>
+                            <button class="range-btn" data-range="1y" data-interval="1d">1년</button>
+                            <button class="range-btn" data-range="5y" data-interval="1mo">5년</button>
+                        </div>
+                        <div class="type-controls">
+                            <button class="type-btn" data-type="line">라인</button>
+                            <button class="type-btn active" data-type="candlestick">캔들</button>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="sp500Chart"></canvas>
+                    </div>
+                </div>
+            </main>
+        </div> <!-- End of tab-search -->
+
+        <div id="tab-portfolio" class="tab-content">
+            <div class="portfolio-content-wrapper">
+                <div class="card market-card">
+                    <div class="portfolio-header">
+                        <span class="header-label">종목명</span>
+                        <div class="header-right">
+                            <span class="header-total">현재총액</span>
+                            <span class="header-qty">보유주수</span>
+                            <span class="header-action"></span>
+                        </div>
+                    </div>
+                    <div id="portfolio-list" class="portfolio-list">
+                        <!-- Portfolio items will be generated here -->
+                    </div>
+                </div>
+
+                <div class="portfolio-actions card market-card">
+                    <div class="portfolio-actions-header">
+                        <h2>포트폴리오 분석</h2>
+                    </div>
+                    <div class="analysis-controls-wrapper">
+                        <button id="analyze-portfolio-btn" class="primary-btn">분석 실행</button>
+                        <div id="analysis-controls">
+                            <div class="range-selector">
+                                <!-- Analysis Range Buttons -->
+                                <button class="range-btn-analysis" data-range="10y">10년</button>
+                                <button class="range-btn-analysis" data-range="7y">7년</button>
+                                <button class="range-btn-analysis active" data-range="5y">5년</button>
+                                <button class="range-btn-analysis" data-range="3y">3년</button>
+                                <button class="range-btn-analysis" data-range="1y">1년</button>
+                                <button class="range-btn-analysis" data-range="6mo">6개월</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Portfolio Stats -->
+                    <div id="portfolio-stats" style="display: none; margin-top: 20px;">
+                        <div class="stat-item">
+                            <span class="stat-label">수익률</span>
+                            <span class="stat-value" id="stat-return">--%</span>
+                            <p class="stat-comment" id="comment-return"></p>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">CAGR</span>
+                            <span class="stat-value" id="stat-cagr">--%</span>
+                            <p class="stat-comment" id="comment-cagr"></p>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">MDD</span>
+                            <span class="stat-value" id="stat-mdd">--%</span>
+                            <p class="stat-comment" id="comment-mdd"></p>
+                        </div>
+                    </div>
+
+                    <div id="portfolio-chart-container" style="display: none; height: 300px; margin-top: 20px;">
+                        <canvas id="portfolioChart"></canvas>
+                    </div>
+
+                    <!-- Composition Charts -->
+                    <div id="portfolio-composition"
+                        style="display: none; margin-top: 30px; gap: 20px; flex-wrap: wrap;">
+                        <div class="composition-chart-wrapper">
+                            <h3>시작 시점 비중</h3>
+                            <canvas id="compositionStart"></canvas>
+                        </div>
+                        <div class="composition-chart-wrapper">
+                            <h3>현재 시점 비중</h3>
+                            <canvas id="compositionEnd"></canvas>
+                        </div>
+                    </div>
+                    <div id="portfolio-loading" style="display: none; text-align: center; margin-top: 20px;">분석 데이터 로딩
+                        중...</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-recommend" class="tab-content">
+            <div id="recommendation-grid" class="dashboard-grid">
+                <!-- Recommendations will be rendered here -->
+            </div>
+            <div id="recommend-loading" style="text-align: center; margin-top: 50px; display: none;">
+                <p>추천 포트폴리오 정보를 불러오는 중입니다...</p>
+            </div>
+        </div>
+
+        <footer class="app-footer">
+            <div class="footer-info">
+                <p>NaNa Lab은 (주)나나컴퍼니가 치즈케익스튜디오의 영업권 일부를 양수하여 운영하는 사업부입니다.</p>
+                <p>
+                    <span>(주)나나컴퍼니 사업자등록번호: 456-81-03285</span>
+                    <span class="separator">|</span>
+                    <span>치즈케익스튜디오 사업자등록번호: 269-08-02374</span>
+                </p>
+                <p>
+                    <a href="https://cdn.jsdelivr.net/gh/NaNaCompany/src_cdn@main/pdf/privacy.pdf" target="_blank"
+                        class="privacy-link">개인정보처리방침</a>
+                </p>
+                <p class="copyright">© 2025 NaNa Company. All rights reserved.</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Login Modal -->
+    <div id="login-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <button id="close-modal-btn" class="close-btn">&times;</button>
+            <h2>로그인</h2>
+            <p>구글 계정으로 로그인하여 나만의 포트폴리오를 관리하세요.</p>
+            <div id="google-signin-button"></div>
+        </div>
+    </div>
+
+    <script src="script.js?v=2"></script>
+
+
+</body>
+
+</html>

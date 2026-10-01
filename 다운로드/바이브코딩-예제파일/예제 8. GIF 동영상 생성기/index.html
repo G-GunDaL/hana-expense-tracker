@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video to GIF | NanaLab</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+    <!-- GIF.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
+</head>
+
+<body>
+    <header>
+        <div class="logo-container">
+            <a href="https://nanalab.kr" target="_blank">
+                <img src="logo.png" alt="NanaLab Logo" class="logo">
+            </a>
+        </div>
+        <div class="app-title">Video to GIF</div>
+    </header>
+
+    <main>
+        <section class="hero">
+            <h1>Video <span class="arrow">&rarr;</span> GIF</h1>
+            <p class="subtitle">Make your own GIF Animation!</p>
+            <p class="subtitle">This service runs on your browser. No data is sent to the server. Super Safe!</p>
+        </section>
+
+        <section class="upload-section" id="drop-zone">
+            <div class="upload-content">
+                <div class="icon">📁</div>
+                <p>Drag and drop your video here</p>
+                <span class="or">or</span>
+                <button id="upload-btn" class="btn primary">Choose File</button>
+                <input type="file" id="file-input" accept="video/*" hidden>
+            </div>
+        </section>
+
+        <section class="list-section" id="list-section">
+            <div id="file-list" class="file-list">
+                <!-- Items will be added here dynamically -->
+            </div>
+        </section>
+    </main>
+
+    <a href="https://nanalab.kr/edit_gif" target="_blank" class="floating-banner">
+        Free GIF Editor Here! 🎨
+    </a>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

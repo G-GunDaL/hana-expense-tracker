@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart GIF Studio - Free GIF Editor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- Header -->
+    <header class="app-header">
+        <a href="https://nanalab.kr/apps" class="logo-link">
+            <img src="logo.png" alt="NanaLab Logo" class="logo">
+        </a>
+        <h1 class="app-title">Smart GIF Studio</h1>
+    </header>
+
+    <!-- Upload Section (Initial View) -->
+    <main id="upload-section" class="container upload-container">
+        <div class="hero-text">
+            <h2>Free GIF Editor</h2>
+            <p class="subtitle">Edit your GIF files for free! Resizing, downscaling, cropping, FPS adjustment, and more
+                features are provided for free!</p>
+            <p class="privacy-note">All data is processed only in your computer browser. Since data is not sent
+                externally, you can use it with confidence without worrying about data leakage.</p>
+        </div>
+
+        <div class="upload-box" id="drop-zone">
+            <div class="upload-content">
+                <svg class="upload-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12">
+                    </path>
+                </svg>
+                <p>Drag & Drop GIF file here</p>
+                <span class="or-divider">- OR -</span>
+                <input type="file" id="file-input" accept="image/gif" hidden>
+                <button id="choose-file-btn" class="primary-btn">Choose File</button>
+            </div>
+        </div>
+
+        <a href="https://nanalab.kr/gif_studio" target="_blank" class="floating-banner">
+            Video -> GIF Converter 🎨
+        </a>
+    </main>
+
+    <!-- Editor Section (Hidden by default) -->
+    <main id="editor-section" class="container editor-container hidden">
+        <div class="editor-layout">
+            <div class="preview-area">
+                <!-- Resized Card (Hidden by default) -->
+                <div id="resized-card" class="preview-card hidden">
+                    <div class="card-header">
+                        <div class="header-left">
+                            <button class="icon-nav-btn toggle-card-btn">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <polyline points="18 15 12 9 6 15"></polyline>
+                                </svg>
+                            </button>
+                            <h3>Resized GIF</h3>
+                        </div>
+                        <button id="download-resized-btn" class="icon-btn" title="Download Resized GIF">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                        </button>
+                    </div>
+                    <div id="resized-content" class="card-content">
+                        <div class="image-wrapper">
+                            <img id="resized-gif-preview" src="" alt="Resized GIF Preview">
+                            <div id="loading-overlay" class="loading-overlay hidden">
+                                <div class="spinner-large"></div>
+                            </div>
+                        </div>
+                        <div id="resized-gif-info" class="gif-info-grid"></div>
+                    </div>
+                </div>
+
+                <!-- Original Card -->
+                <div id="original-card" class="preview-card">
+                    <div class="card-header">
+                        <div class="header-left">
+                            <button id="toggle-original-btn" class="icon-nav-btn">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <polyline points="18 15 12 9 6 15"></polyline>
+                                </svg>
+                            </button>
+                            <h3>Original GIF</h3>
+                        </div>
+                        <button id="download-btn" class="icon-btn" title="Download GIF">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                        </button>
+                    </div>
+                    <div id="original-content">
+                        <div class="image-wrapper">
+                            <img id="gif-preview" src="" alt="Uploaded GIF Preview">
+                        </div>
+                        <div id="gif-info" class="gif-info-grid">
+                            <!-- Info will be populated by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="control-panel">
+                <div class="panel-card">
+                    <h3>Editor Tools</h3>
+                    <div class="tools-grid" id="main-tools-grid">
+                        <button class="tool-btn" data-tool="resize">
+                            <div class="icon-box">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7" />
+                                </svg>
+                            </div>
+                            <span>Resize</span>
+                        </button>
+                        <button class="tool-btn" data-tool="crop">
+                            <div class="icon-box">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M6.13 1L6 16a2 2 0 0 0 2 2h15"></path>
+                                    <path d="M1 6.13L16 6a2 2 0 0 1 2 2v15"></path>
+                                </svg>
+                            </div>
+                            <span>Crop</span>
+                        </button>
+                        <button class="tool-btn" data-tool="downsize">
+                            <div class="icon-box">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M4 14h6v6" />
+                                    <path d="M20 10h-6V4" />
+                                    <path d="M14 10l7-7" />
+                                    <path d="M3 21l7-7" />
+                                </svg>
+                            </div>
+                            <span>Downsizing</span>
+                        </button>
+                        <button class="tool-btn" data-tool="convert">
+                            <div class="icon-box">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path d="M8 3 4 7l4 4" />
+                                    <path d="M4 7h16" />
+                                    <path d="M16 21l4-4-4-4" />
+                                    <path d="M20 17H4" />
+                                </svg>
+                            </div>
+                            <span>Convert</span>
+                        </button>
+                        <button class="tool-btn" data-tool="rotate">
+                            <div class="icon-box">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <path
+                                        d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3" />
+                                </svg>
+                            </div>
+                            <span>Rotate</span>
+                        </button>
+                        <button class="tool-btn" data-tool="optimize">
+                            <div class="icon-box">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                                </svg>
+                            </div>
+                            <span>Optimize</span>
+                        </button>
+                        <button class="tool-btn" data-tool="reverse">
+                            <div class="icon-box">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <polygon points="11 19 2 12 11 5 11 19"></polygon>
+                                    <polygon points="22 19 13 12 22 5 22 19"></polygon>
+                                </svg>
+                            </div>
+                            <span>Reverse</span>
+                        </button>
+                        <button class="tool-btn" data-tool="speed">
+                            <div class="icon-box">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
+                            </div>
+                            <span>Speed</span>
+                        </button>
+                        <button class="tool-btn" data-tool="cut">
+                            <div class="icon-box">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                    stroke-linejoin="round">
+                                    <circle cx="6" cy="6" r="3"></circle>
+                                    <circle cx="6" cy="18" r="3"></circle>
+                                    <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+                                    <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+                                    <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+                                </svg>
+                            </div>
+                            <span>Cut</span>
+                        </button>
+                    </div>
+
+                    <!-- Resize Panel (Hidden) -->
+                    <div id="resize-panel" class="tool-panel hidden">
+                        <div class="panel-header">
+                            <h4>Resize Options</h4>
+                        </div>
+
+                        <div class="resize-controls">
+                            <!-- X Axis -->
+                            <div class="control-group">
+                                <label>Width (px)</label>
+                                <div class="slider-input-group">
+                                    <input type="range" id="resize-width-slider" class="range-slider">
+                                    <input type="number" id="resize-width-input" class="number-input">
+                                </div>
+                            </div>
+
+                            <!-- Lock -->
+                            <div class="lock-container">
+                                <button id="aspect-ratio-lock" class="lock-btn active" title="Lock Aspect Ratio">
+                                    <svg class="lock-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                                        viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                                        stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                    </svg>
+                                    <svg class="unlock-icon hidden" xmlns="http://www.w3.org/2000/svg" width="20"
+                                        height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                        <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+                                    </svg>
+                                </button>
+                                <div class="lock-line"></div>
+                            </div>
+
+                            <!-- Y Axis -->
+                            <div class="control-group">
+                                <label>Height (px)</label>
+                                <div class="slider-input-group">
+                                    <input type="range" id="resize-height-slider" class="range-slider">
+                                    <input type="number" id="resize-height-input" class="number-input">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="progress-container hidden" id="resize-progress-container">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="resize-progress-fill" style="width: 0%"></div>
+                            </div>
+                            <span class="progress-text" id="resize-progress-text">0%</span>
+                        </div>
+
+                        <div class="panel-actions">
+                            <button id="resize-back-btn" class="secondary-btn">Back</button>
+                            <button id="resize-go-btn" class="primary-btn">Go!</button>
+                        </div>
+                    </div>
+
+                    <!-- Crop Panel (Hidden) -->
+                    <div id="crop-panel" class="tool-panel hidden">
+                        <div class="panel-header">
+                            <h4>Smart Crop / Resize</h4>
+                        </div>
+
+                        <div class="crop-controls">
+                            <!-- Image Size -->
+                            <div class="control-group">
+                                <label>Image Size (Long Axis)</label>
+                                <div class="chip-group" id="crop-size-group">
+                                    <button class="chip-btn active" data-value="origin">Origin</button>
+                                    <button class="chip-btn" data-value="600">600</button>
+                                    <button class="chip-btn" data-value="800">800</button>
+                                    <button class="chip-btn" data-value="1200">1200</button>
+                                    <button class="chip-btn" data-value="1600">1600</button>
+                                    <!-- Custom input can be added later if needed, limiting scope for now or user can use Resize tool for specific pixel -->
+                                </div>
+                            </div>
+
+                            <!-- Aspect Ratio -->
+                            <div class="control-group">
+                                <label>Aspect Ratio</label>
+                                <div class="chip-group" id="crop-ratio-group">
+                                    <button class="chip-btn active" data-value="origin">Original</button>
+                                    <button class="chip-btn" data-value="1:1">1:1</button>
+                                    <button class="chip-btn" data-value="3:4">3:4</button>
+                                    <button class="chip-btn" data-value="4:3">4:3</button>
+                                    <button class="chip-btn" data-value="9:16">9:16</button>
+                                    <button class="chip-btn" data-value="16:9">16:9</button>
+                                </div>
+                            </div>
+
+                            <!-- Resize Mode -->
+                            <div class="control-group">
+                                <label>Resize Mode</label>
+                                <div class="radio-group">
+                                    <label class="radio-label">
+                                        <input type="radio" name="crop-mode" value="fill" checked>
+                                        <span class="radio-custom"></span>
+                                        <span class="radio-text">Padding (Fill)</span>
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="crop-mode" value="fit">
+                                        <span class="radio-custom"></span>
+                                        <span class="radio-text">Crop (Fit)</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Background Color -->
+                            <div class="control-group">
+                                <label>Background Color</label>
+                                <div class="color-picker-wrapper">
+                                    <input type="color" id="crop-bg-color" value="#ffffff">
+                                    <span id="crop-bg-text">#FFFFFF</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Re-use the existing resize progress container logic/styles or duplicate? 
+                             Let's duplicate for cleaner component separation or reuse dynamically. 
+                             Duplicating with unique ID for safety: -->
+                        <div class="progress-container hidden" id="crop-progress-container">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="crop-progress-fill" style="width: 0%"></div>
+                            </div>
+                            <span class="progress-text" id="crop-progress-text">0%</span>
+                        </div>
+
+                        <div class="progress-container hidden" id="crop-progress-container">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="crop-progress-fill" style="width: 0%"></div>
+                            </div>
+                            <span class="progress-text" id="crop-progress-text">0%</span>
+                        </div>
+
+                        <div class="panel-actions">
+                            <button id="crop-back-btn" class="secondary-btn">Back</button>
+                            <button id="crop-go-btn" class="primary-btn">Go!</button>
+                        </div>
+                    </div>
+
+                    <!-- Downsize Panel -->
+                    <div id="downsize-panel" class="tool-panel hidden">
+                        <div class="panel-header">
+                            <h4>Downsizing Options</h4>
+                        </div>
+
+                        <div class="resize-controls">
+                            <!-- Scale Slider -->
+                            <div class="control-group">
+                                <label>Scale: <span id="downsize-scale-val">100% (Original)</span></label>
+                                <input type="range" id="downsize-scale" class="range-slider" min="10" max="100"
+                                    value="100" step="1">
+                            </div>
+
+                            <!-- Frame Rate Slider -->
+                            <div class="control-group">
+                                <label>Frame Rate: <span id="downsize-fps-val">100% (Original)</span></label>
+                                <input type="range" id="downsize-fps" class="range-slider" min="10" max="100"
+                                    value="100" step="10">
+                            </div>
+
+                            <!-- Quality Slider -->
+                            <div class="control-group">
+                                <label>Quality (Resolution): <span id="downsize-quality-val">10 (Best)</span></label>
+                                <div
+                                    style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-secondary);">
+                                    <span>Low</span><span>Best</span>
+                                </div>
+                                <input type="range" id="downsize-quality" class="range-slider" min="1" max="10"
+                                    value="10" step="1">
+                            </div>
+                        </div>
+
+                        <div class="progress-container hidden" id="downsize-progress-container">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="downsize-progress-fill" style="width: 0%"></div>
+                            </div>
+                            <span class="progress-text" id="downsize-progress-text">0%</span>
+                        </div>
+
+                        <div class="panel-actions">
+                            <button id="downsize-back-btn" class="secondary-btn">Back</button>
+                            <button id="downsize-go-btn" class="primary-btn">Go!</button>
+                        </div>
+                    </div>
+
+                    <!-- Rotate Panel -->
+                    <div id="rotate-panel" class="tool-panel hidden">
+                        <div class="panel-header">
+                            <h4>Rotate / Flip Options</h4>
+                        </div>
+
+                        <div class="control-group">
+                            <label class="control-label"
+                                style="display:block; margin-bottom:0.5rem; font-weight:500; color:var(--text-main);">Rotation
+                                (Clockwise)</label>
+                            <div class="chip-group" id="rotate-angle-group">
+                                <button class="chip-btn active" data-val="0">0°</button>
+                                <button class="chip-btn" data-val="90">90°</button>
+                                <button class="chip-btn" data-val="180">180°</button>
+                                <button class="chip-btn" data-val="270">270°</button>
+                            </div>
+                        </div>
+
+                        <div class="control-group" style="margin-top: 1.5rem;">
+                            <label class="control-label"
+                                style="display:block; margin-bottom:0.5rem; font-weight:500; color:var(--text-main);">Flip</label>
+                            <div class="chip-group">
+                                <button class="chip-btn" id="flip-h-btn">Horizontal ↔</button>
+                                <button class="chip-btn" id="flip-v-btn">Vertical ↕</button>
+                            </div>
+                        </div>
+
+                        <div class="progress-container hidden" id="rotate-progress-container">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="rotate-progress-fill" style="width: 0%"></div>
+                            </div>
+                            <span class="progress-text" id="rotate-progress-text">0%</span>
+                        </div>
+
+                        <div class="panel-actions">
+                            <button id="rotate-back-btn" class="secondary-btn">Back</button>
+                            <button id="rotate-go-btn" class="primary-btn">Go!</button>
+                        </div>
+                    </div>
+
+                    <!-- Reverse Panel -->
+                    <div id="reverse-panel" class="tool-panel hidden">
+                        <div class="panel-header">
+                            <h4>Reverse Animation</h4>
+                        </div>
+                        <div class="generic-content"
+                            style="padding: 2rem 1rem; text-align: center; color: var(--text-secondary);">
+                            <p>The animation will be played in reverse.</p>
+                        </div>
+
+                        <div class="progress-container hidden" id="reverse-progress-container">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="reverse-progress-fill" style="width: 0%"></div>
+                            </div>
+                            <span class="progress-text" id="reverse-progress-text">0%</span>
+                        </div>
+
+                        <div class="panel-actions">
+                            <button id="reverse-back-btn" class="secondary-btn">Back</button>
+                            <button id="reverse-go-btn" class="primary-btn">Go!</button>
+                        </div>
+                    </div>
+
+                    <!-- Speed Panel -->
+                    <div id="speed-panel" class="tool-panel hidden">
+                        <div class="panel-header">
+                            <h4>Change Animation Speed</h4>
+                        </div>
+                        <div class="control-group">
+                            <label class="control-label" style="display:flex; justify-content:space-between;">
+                                <span>Playback Speed</span>
+                                <span id="speed-value" style="color:var(--primary-color); font-weight:600;">100%</span>
+                            </label>
+                            <input type="range" id="speed-slider" class="range-slider" min="10" max="300" value="100"
+                                step="10">
+                            <div class="range-labels"
+                                style="display:flex; justify-content:space-between; font-size:0.8rem; color:var(--text-muted); margin-top:0.25rem;">
+                                <span>Slow (10%)</span>
+                                <span>Fast (300%)</span>
+                            </div>
+                        </div>
+
+                        <div class="progress-container hidden" id="speed-progress-container">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="speed-progress-fill" style="width: 0%"></div>
+                            </div>
+                            <span class="progress-text" id="speed-progress-text">0%</span>
+                        </div>
+
+                        <div class="panel-actions">
+                            <button id="speed-back-btn" class="secondary-btn">Back</button>
+                            <button id="speed-go-btn" class="primary-btn">Go!</button>
+                        </div>
+                    </div>
+
+                    <!-- Optimize Panel -->
+                    <div id="optimize-panel" class="tool-panel hidden">
+                        <div class="panel-header">
+                            <h4>Optimize GIF</h4>
+                        </div>
+                        <div class="control-group">
+                            <label class="control-label">Optimization Options</label>
+
+                            <label class="checkbox-container"
+                                style="display:flex; align-items:center; margin-top:0.5rem; cursor:pointer;">
+                                <input type="checkbox" id="opt-global-palette" checked
+                                    style="width:1.2rem; height:1.2rem; margin-right:0.5rem; accent-color:var(--primary-color);">
+                                <span style="font-size:0.9rem; color:var(--text-main);">Re-generate Global
+                                    Palette</span>
+                            </label>
+
+                            <label class="checkbox-container"
+                                style="display:flex; align-items:center; margin-top:0.5rem; cursor:pointer;">
+                                <input type="checkbox" id="opt-frame-delta"
+                                    style="width:1.2rem; height:1.2rem; margin-right:0.5rem; accent-color:var(--primary-color);">
+                                <span style="font-size:0.9rem; color:var(--text-main);">Frame Delta Compression
+                                    (Experimental)</span>
+                            </label>
+                            <p style="font-size:0.8rem; color:var(--text-muted); margin-top:0.5rem; line-height:1.4;">
+                                * Global Palette: Consolidates colors for better compression.<br>
+                                * Delta Compression: Makes unchanged pixels transparent.
+                            </p>
+                        </div>
+
+                        <div class="progress-container hidden" id="optimize-progress-container">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="optimize-progress-fill" style="width: 0%"></div>
+                            </div>
+                            <span class="progress-text" id="optimize-progress-text">0%</span>
+                        </div>
+
+                        <div class="panel-actions">
+                            <button id="optimize-back-btn" class="secondary-btn">Back</button>
+                            <button id="optimize-go-btn" class="primary-btn">Go!</button>
+                        </div>
+                    </div>
+
+
+                    <!-- Cut Panel -->
+                    <div id="cut-panel" class="tool-panel hidden">
+                        <div class="panel-header">
+                            <h4>Cut Options</h4>
+                        </div>
+
+                        <div class="cut-preview-container">
+                            <div class="cut-preview-item">
+                                <span class="frame-counter" id="cut-start-frame-text">0</span>
+                                <div class="preview-box">
+                                    <img id="cut-start-preview" src="" alt="">
+                                </div>
+                            </div>
+                            <div class="cut-preview-item">
+                                <span class="frame-counter" id="cut-end-frame-text">0</span>
+                                <div class="preview-box">
+                                    <img id="cut-end-preview" src="" alt="">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="cut-controls">
+                            <label class="control-label">Select Range</label>
+                            <div class="dual-range-container">
+                                <div class="range-track"></div>
+                                <div class="range-highlight" id="cut-range-highlight"></div>
+                                <input type="range" id="cut-start-slider" min="0" max="100" value="0">
+                                <input type="range" id="cut-end-slider" min="0" max="100" value="100">
+                            </div>
+                        </div>
+
+                        <div class="progress-container hidden" id="cut-progress-container">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="cut-progress-fill" style="width: 0%"></div>
+                            </div>
+                            <span class="progress-text" id="cut-progress-text">0%</span>
+                        </div>
+
+                        <div class="panel-actions">
+                            <button id="cut-back-btn" class="secondary-btn">Back</button>
+                            <button id="cut-go-btn" class="primary-btn">Go!</button>
+                        </div>
+                    </div>
+
+                    <!-- Convert Panel -->
+                    <div id="convert-panel" class="tool-panel hidden">
+                        <div class="panel-header">
+                            <h4>Convert to...</h4>
+                        </div>
+
+                        <div class="format-grid">
+                            <label class="format-card">
+                                <input type="radio" name="convert-format" value="mp4">
+                                <div class="format-content">
+                                    <span class="format-ext">MP4</span>
+                                    <span class="format-name">Video</span>
+                                </div>
+                            </label>
+                            <label class="format-card">
+                                <input type="radio" name="convert-format" value="webm">
+                                <div class="format-content">
+                                    <span class="format-ext">WEBM</span>
+                                    <span class="format-name">Animation</span>
+                                </div>
+                            </label>
+                            <label class="format-card">
+                                <input type="radio" name="convert-format" value="jpg" checked>
+                                <div class="format-content">
+                                    <span class="format-ext">JPG</span>
+                                    <span class="format-name">Still Cut</span>
+                                </div>
+                            </label>
+                        </div>
+
+                        <div class="progress-container hidden" id="convert-progress-container">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="convert-progress-fill" style="width: 0%"></div>
+                            </div>
+                            <span class="progress-text" id="convert-progress-text">0%</span>
+                            <p id="convert-status-text"
+                                style="text-align:center; font-size:0.8rem; color:var(--text-muted); margin-top:0.5rem;">
+                                Ready</p>
+                        </div>
+
+                        <div class="panel-actions">
+                            <button id="convert-back-btn" class="secondary-btn">Back</button>
+                            <button id="convert-go-btn" class="primary-btn">Go!</button>
+                        </div>
+                    </div>
+
+                    <!-- Generic Panel for other tools -->
+                    <div id="generic-panel" class="tool-panel hidden">
+                        <div class="panel-header">
+                            <h4 id="generic-panel-title">Tool Options</h4>
+                        </div>
+                        <div class="generic-content"
+                            style="padding: 2rem; 1rem; text-align: center; color: var(--text-secondary);">
+                            <p>This tool will be available soon.</p>
+                        </div>
+                        <div class="panel-actions">
+                            <button id="generic-back-btn" class="secondary-btn">Back</button>
+                            <button id="generic-go-btn" class="primary-btn">Go!</button>
+                        </div>
+                    </div>
+
+                    <button class="secondary-btn" id="reset-btn" style="margin-top: 1rem; width: 100%;">Choose Another
+                        File</button>
+                </div>
+            </div>
+        </div>
+
+        <a href="https://nanalab.kr/gif_studio" target="_blank" class="floating-banner-under">
+            Video -> GIF Converter 🎨
+        </a>
+    </main>
+
+    <script src="https://unpkg.com/omggif@1.0.10/omggif.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>

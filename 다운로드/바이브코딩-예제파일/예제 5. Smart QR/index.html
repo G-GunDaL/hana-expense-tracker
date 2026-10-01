@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart QR</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+
+<body>
+    <div class="background-animate"></div>
+    <div class="glass-overlay"></div>
+
+    <header>
+        <div class="logo-container">
+            <a href="https://nanalab.kr">
+                <img src="logo.png" alt="Logo" class="logo">
+            </a>
+        </div>
+        <div class="site-title">Smart QR</div>
+    </header>
+
+    <main class="container">
+        <div class="input-section" id="inputSection">
+            <div class="content-wrapper">
+                <h1 class="hero-title">Simply Generate <span class="gradient-text">QR Codes</span></h1>
+                <p class="hero-subtitle">Enter your URL below to create a custom QR code instantly.</p>
+                <div class="input-wrapper">
+                    <input type="text" id="urlInput" placeholder="https://example.com" autocomplete="off">
+                    <button id="generateBtn">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="qr-section hidden" id="qrSection">
+            <div id="qrCode"></div>
+            <p class="instruction">QR 코드를 클릭하여 다운로드하세요</p>
+        </div>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
