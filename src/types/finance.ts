@@ -132,3 +132,68 @@ export interface CardMonthSummary {
   categoryTotals: Record<string, number>;
   momGrowthRate?: number; // 전월비 증감률 (%)
 }
+
+// -------------------------------------------------------------
+// 통합 현금흐름 (All-in-One Integrated Cashflow) 타입
+// -------------------------------------------------------------
+export interface UnifiedMonthlyData {
+  yearMonth: string; // 'YYYY-MM'
+
+  // 1. 총수입 (Income)
+  totalIncome: number;
+  salaryIncome: number;
+  otherIncome: number;
+
+  // 2. 고정비 (Fixed)
+  totalFixed: number;
+  bankFixed: number; // 계좌이체분 (보험, 생활비, 정기용돈 등)
+  cardFixed: number; // 카드결제분 (관리비, 통신비, 가스, 렌탈, 지방세)
+  fixedDetails: {
+    apartmentMaintenance: number; // 아파트관리비
+    telecom: number; // 통신비 (LG유플러스)
+    cityGas: number; // 도시가스 (충청에너지)
+    rental: number; // 쿠쿠홈시스 (렌탈)
+    localTax: number; // 지방세
+    insurance: number; // 보장성 보험료
+    spouseLiving: number; // 배우자 생활비
+    parentsAllowance: number; // 부모님 정기용돈
+    otherFixed: number;
+  };
+
+  // 3. 변동생활비 (Variable)
+  totalVariable: number;
+  cardPureVariable: number; // 카드 순수소비 (쇼핑, 외식, 마트, 교통 등)
+  totalEduExpense: number; // 통합 자녀 교육비 (청주페이 + 카드 학원비)
+  eduCheongjuPay: number; // 청주페이 충전액 (은행 출금)
+  eduCardAcademy: number; // 카드 학원 결제액
+  bankOtherExpense: number; // 은행 기타 비정기 송금/경조사
+
+  // 4. 지출 대 카테고리 (도넛 차트용)
+  donutCategories: {
+    fixed: number; // 고정비(관리비/통신비/공과금/보험 등)
+    education: number; // 자녀 교육비 (청주페이 + 카드 학원비)
+    onlineShopping: number; // 온라인 쇼핑 / 이커머스 (쿠팡 등)
+    foodDining: number; // 식비 / 마트 / 편의점 / 외식
+    transportVehicle: number; // 교통 / 차량 / 기타
+  };
+
+  // 5. 잉여현금 (Surplus) & 저축률
+  netSurplus: number; // 총수입 - 고정비 - 변동생활비
+  totalExpense: number; // 고정비 + 변동생활비
+  savingsRate: number; // (잉여현금 / 총수입) * 100
+  isDeficit: boolean; // 적자 여부
+
+  // 6. 집계 메타데이터
+  bankTxCount: number;
+  cardTxCount: number;
+  excludedCardTransferAmt: number; // 이중 계산 방지로 제외된 카드대금 이체액
+}
+
+export interface EducationDetailTx {
+  id: string;
+  date: string;
+  source: '청주페이' | '현대카드';
+  title: string;
+  amount: number;
+  memo?: string;
+}

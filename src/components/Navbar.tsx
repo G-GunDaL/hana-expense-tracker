@@ -71,6 +71,17 @@ export const Navbar: React.FC<NavbarProps> = ({
               대시보드
             </button>
             <button
+              onClick={() => setActiveTab('unifiedCashFlow')}
+              className={`px-3.5 py-2 rounded-lg text-sm font-medium min-h-[44px] flex items-center gap-1.5 transition-all ${
+                activeTab === 'unifiedCashFlow'
+                  ? 'bg-brand-500 text-white shadow-md shadow-brand-500/25'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              <span>통합 현금흐름</span>
+              <span className="text-[10px] px-1.5 py-0.2 bg-emerald-500/20 text-emerald-300 rounded font-bold">New</span>
+            </button>
+            <button
               onClick={() => setActiveTab('benchmark')}
               className={`px-3.5 py-2 rounded-lg text-sm font-medium min-h-[44px] flex items-center transition-all ${
                 activeTab === 'benchmark'

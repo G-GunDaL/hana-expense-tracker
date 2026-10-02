@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, CreditCard, PieChart, ReceiptText, Upload } from 'lucide-react';
+import { LayoutDashboard, Layers, CreditCard, PieChart, ReceiptText, Upload } from 'lucide-react';
 
 interface MobileBottomNavProps {
   activeTab: string;
@@ -31,15 +31,19 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
         </button>
 
         <button
-          onClick={() => setActiveTab('cardAnalytics')}
+          onClick={() => setActiveTab('unifiedCashFlow')}
           className={`flex-1 flex flex-col items-center justify-center min-h-[48px] py-1 px-1 rounded-xl transition-all active:scale-95 ${
-            activeTab === 'cardAnalytics' 
+            activeTab === 'unifiedCashFlow' 
               ? 'text-brand-400 font-bold bg-brand-500/10' 
               : 'text-slate-400 hover:text-slate-200'
           }`}
         >
-          <CreditCard className="w-5 h-5" />
-          <span className="text-[10px] mt-0.5 tracking-tight font-semibold">카드소비</span>
+          <div className="relative">
+            <Layers className="w-5 h-5" />
+            <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-400 rounded-full animate-ping" />
+            <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-400 rounded-full" />
+          </div>
+          <span className="text-[10px] mt-0.5 tracking-tight font-semibold">통합현금</span>
         </button>
 
         {/* 중앙 플로팅 엑셀 업로드 버튼 */}

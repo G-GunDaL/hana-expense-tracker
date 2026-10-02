@@ -23,11 +23,12 @@ import { BenchmarkChart } from './components/BenchmarkChart';
 import { ExpenseAnalytics } from './components/ExpenseAnalytics';
 import { TransactionTable } from './components/TransactionTable';
 import { CardAnalytics } from './components/CardAnalytics';
+import { UnifiedCashFlowView } from './components/UnifiedCashFlowView';
 import { FileUploader } from './components/FileUploader';
 import { CardFileUploader } from './components/CardFileUploader';
 import { SettingsModal } from './components/SettingsModal';
 import { MobileBottomNav } from './components/MobileBottomNav';
-import { RefreshCw, Cloud, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { RefreshCw, Cloud, CheckCircle2, AlertTriangle, Layers, ArrowRight } from 'lucide-react';
 
 export const App: React.FC = () => {
   // useFinancialData: 모바일/원격 접속 시 Supabase 우선 조회 & 로컬 캐시 하이드레이션
@@ -201,6 +202,35 @@ export const App: React.FC = () => {
           {/* 상단 4대 핵심 모니터링 KPI 카드 */}
           {activeTab === 'dashboard' && (
             <>
+              {/* 통합 현금흐름 (All-in-One) 바로가기 배너 */}
+              <div 
+                onClick={() => setActiveTab('unifiedCashFlow')}
+                className="cursor-pointer group relative overflow-hidden rounded-2xl bg-gradient-to-r from-brand-900/40 via-slate-900/90 to-purple-900/40 border border-brand-500/30 hover:border-brand-400 p-4 transition-all duration-300 shadow-glass flex items-center justify-between"
+              >
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-xl bg-brand-500/20 border border-brand-500/40 flex items-center justify-center text-brand-300 shrink-0">
+                    <Layers className="w-5 h-5 text-brand-400" />
+                  </div>
+                  <div>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm font-bold text-white group-hover:text-brand-300 transition-colors">
+                        [신규 런칭] 통합 현금흐름 (All-in-One) 바로가기
+                      </span>
+                      <span className="px-2 py-0.5 text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-full">
+                        이중계산 방지 적용
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400">
+                      하나은행 입출금과 현대카드 승인 내역을 결합한 4단계 통합 현금흐름 및 자녀 교육비 드릴다운을 확인하세요.
+                    </p>
+                  </div>
+                </div>
+                <div className="hidden sm:flex items-center space-x-1 text-xs font-semibold text-brand-400 group-hover:translate-x-1 transition-transform shrink-0">
+                  <span>대시보드 보기</span>
+                  <ArrowRight className="w-4 h-4" />
+                </div>
+              </div>
+
               <KPICards stats={coreKPIStats} />
               
               {/* 메인 대시보드 뷰: 벤치마크 차트 & 지출 요약 그리드 */}
@@ -213,6 +243,18 @@ export const App: React.FC = () => {
                 </div>
               </div>
             </>
+          )}
+
+          {/* 통합 현금흐름 (All-in-One) 신규 독립 탭 */}
+          {activeTab === 'unifiedCashFlow' && (
+            <div className="space-y-6">
+              <UnifiedCashFlowView
+                bankTransactions={transactions || []}
+                cardTransactions={cardTransactions || []}
+                onOpenFileUpload={() => setIsUploadOpen(true)}
+                onOpenCardUpload={() => setIsCardUploadOpen(true)}
+              />
+            </div>
           )}
 
           {/* 4인가구 벤치마크 전용 탭 */}
