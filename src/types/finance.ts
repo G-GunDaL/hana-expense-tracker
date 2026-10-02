@@ -176,10 +176,13 @@ export interface UnifiedMonthlyData {
     education: number; // 자녀 교육비 (청주페이 + 카드 학원비)
     familyEvents: number; // 경조사비 & 비정기 송금
     onlineShopping: number; // 온라인 쇼핑 / 이커머스 (쿠팡 등)
-    foodDining: number; // 식비 / 마트 / 편의점 / 외식
-    transportVehicle: number; // 교통 / 차량 / 기타
+    groceryMart: number; // 마트 / 편의점 / 식료품
+    diningOut: number; // 외식 / 식당 / 배달 / 카페
+    transportVehicle: number; // 교통 / 차량 / 주유
+    cultureHealthEtc: number; // 의료 / 문화 / 생활 / 기타
+    foodDining?: number; // 하위 호환용 (선택적)
 
-    // 9대 정밀 카테고리 (전체화면 정밀 분석용)
+    // 11대 정밀 카테고리 (전체화면 정밀 분석용)
     detailed: {
       spouseLiving: number; // 고정: 배우자 생활비
       insurance: number; // 고정: 보장성 보험료
@@ -188,8 +191,11 @@ export interface UnifiedMonthlyData {
       education: number; // 자녀 교육비 (청주페이 + 카드 학원비)
       familyEvents: number; // 비정기: 경조사비 & 가족 비정기 송금
       onlineShopping: number; // 온라인 쇼핑 / 이커머스
-      foodDining: number; // 식비 / 마트 / 편의점 / 외식 / 카페
-      transportVehicle: number; // 교통 / 차량 / 주유 / 기타 생활소비
+      groceryMart: number; // 마트 / 편의점 / 식료품
+      diningOut: number; // 외식 / 식당 / 배달 / 카페
+      transportVehicle: number; // 교통 / 차량 / 주유
+      cultureHealthEtc: number; // 의료 / 문화 / 생활 / 기타
+      foodDining?: number; // 하위 호환용
     };
   };
 

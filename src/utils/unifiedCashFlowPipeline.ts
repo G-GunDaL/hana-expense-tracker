@@ -240,10 +240,12 @@ export function calculateUnifiedCashFlow(
       localTax: 0
     };
 
-    // 도넛 차트용 카테고리 누적액
+    // 도넛 차트용 카테고리 누적액 (온라인 쇼핑, 마트/편의점, 외식 분리)
     let donutOnlineShopping = 0;
-    let donutFoodDining = 0;
+    let donutGroceryMart = 0;
+    let donutDiningOut = 0;
     let donutTransportVehicle = 0;
+    let donutCultureHealthEtc = 0;
 
     for (const tx of monthCardTxs) {
       const amt = Number(tx.amount) || 0;
@@ -278,20 +280,31 @@ export function calculateUnifiedCashFlow(
       // 규칙 4: 카드 순수 변동 소비 (쇼핑/외식/마트/교통 등)
       cardPureVariable += amt;
 
-      // 도넛 세부 분류
-      if (category === '온라인쇼핑' || /쿠팡|네이버페이|쇼핑|G마켓|옥션|에이블리/i.test(merchant)) {
+      // 도넛 세부 분류 (온라인 쇼핑, 마트/편의점, 외식/식당/카페 완전 분리)
+      if (category === '온라인쇼핑' || /쿠팡|네이버페이|쇼핑|G마켓|옥션|에이블리|번개장터|하고|러브썸원|다우데이타|스마트로/i.test(merchant)) {
         donutOnlineShopping += amt;
+      } else if (
+        category === '마트/편의점' ||
+        /마트|편의점|씨유|CU|GS25|세븐일레븐|이마트|홈플러스|다이소|청과|과일|수산|슈퍼|하나로|코스트코|아이스꽁꽁|응응스크르/i.test(merchant)
+      ) {
+        donutGroceryMart += amt;
       } else if (
         category === '외식/식당' ||
         category === '배달음식' ||
-        category === '마트/편의점' ||
         category === '카페/베이커리' ||
-        /식당|배달|마트|편의점|카페|스타벅스|치킨|갈비/i.test(merchant)
+        /식당|배달|카페|커피|스타벅스|치킨|갈비|이디야|투썸|컴포즈|메가커피|파리바게뜨|뚜레쥬르|맥도날드|피자|베이커리|고기|횟집|우아한형제들|배달의민족|요기요|쿠팡이츠|뷔페|푸드|샤브|한우|음식점/i.test(merchant)
       ) {
-        donutFoodDining += amt;
-      } else {
-        // 교통, 차량, 하이패스, 의료, 문화, 기타
+        donutDiningOut += amt;
+      } else if (
+        category === '교통/택시' ||
+        category === '통행료/하이패스' ||
+        category === '차량/주유/정비' ||
+        /주유소|에너지|하이패스|고속도로|도로공사|카카오T|택시|티머니|오토|세차|정비|철도|코레일/i.test(merchant)
+      ) {
         donutTransportVehicle += amt;
+      } else {
+        // 의료, 문화, 뷰티, 금융, 기타 생활소비
+        donutCultureHealthEtc += amt;
       }
     }
 
@@ -318,14 +331,17 @@ export function calculateUnifiedCashFlow(
     // 경조사비 + 기타 비정기 송금
     const familyEvents = eventExpense + otherBankTransfer;
 
-    // 도넛 차트 5대 대분류 및 9대 정밀 카테고리 구성
+    // 도넛 차트 11대 정밀 카테고리 & 핵심 대분류 구성
     const donutCategories = {
       fixed: totalFixed,
       education: totalEduExpense,
       familyEvents: familyEvents,
       onlineShopping: donutOnlineShopping,
-      foodDining: donutFoodDining,
+      groceryMart: donutGroceryMart,
+      diningOut: donutDiningOut,
       transportVehicle: donutTransportVehicle,
+      cultureHealthEtc: donutCultureHealthEtc,
+      foodDining: donutGroceryMart + donutDiningOut, // 하위 호환
 
       detailed: {
         spouseLiving: bankFixedDetails.spouseLiving,
@@ -335,8 +351,11 @@ export function calculateUnifiedCashFlow(
         education: totalEduExpense,
         familyEvents: familyEvents,
         onlineShopping: donutOnlineShopping,
-        foodDining: donutFoodDining,
-        transportVehicle: donutTransportVehicle
+        groceryMart: donutGroceryMart,
+        diningOut: donutDiningOut,
+        transportVehicle: donutTransportVehicle,
+        cultureHealthEtc: donutCultureHealthEtc,
+        foodDining: donutGroceryMart + donutDiningOut
       }
     };
 

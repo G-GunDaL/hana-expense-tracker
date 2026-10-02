@@ -60,7 +60,7 @@ interface UnifiedCashFlowViewProps {
   onOpenCardUpload?: () => void;
 }
 
-// 9대 정밀 카테고리 색상
+// 11대 정밀 카테고리 색상
 const DETAILED_CATEGORY_COLORS: Record<string, string> = {
   spouseLiving: '#10b981', // 에메랄드 (배우자 생활비)
   insurance: '#f59e0b', // 앰버 (보장성 보험료)
@@ -68,19 +68,25 @@ const DETAILED_CATEGORY_COLORS: Record<string, string> = {
   housingUtilities: '#6366f1', // 인디고 (주거/관리비/공과금/렌탈)
   education: '#ec4899', // 핑크 (자녀 교육비)
   familyEvents: '#f97316', // 오렌지 (경조사비 & 비정기 송금)
-  onlineShopping: '#e60050', // 하나 레드 (온라인 쇼핑)
-  foodDining: '#8b5cf6', // 바이올렛 (식비/마트/외식/카페)
-  transportVehicle: '#3b82f6' // 블루 (교통/차량/기타 소비)
+  onlineShopping: '#e11d48', // 로즈 레드 (온라인 쇼핑 / 이커머스)
+  groceryMart: '#059669', // 에메랄드 그린 (마트 / 편의점 / 식료품)
+  diningOut: '#f43f5e', // 코랄 레드 (외식 / 식당 / 배달 / 카페)
+  transportVehicle: '#3b82f6', // 블루 (교통 / 차량 / 주유)
+  cultureHealthEtc: '#8b5cf6', // 바이올렛 (의료 / 문화 / 기타 생활)
+  foodDining: '#059669' // 하위 호환
 };
 
-// 6대 대분류 카테고리 색상
+// 핵심 대분류 카테고리 색상
 const SIMPLE_CATEGORY_COLORS: Record<string, string> = {
   fixed: '#f59e0b', // 앰버 (고정비)
   education: '#ec4899', // 핑크 (자녀 교육비)
   familyEvents: '#f97316', // 오렌지 (경조사비)
-  onlineShopping: '#e60050', // 하나 레드 (온라인 쇼핑)
-  foodDining: '#10b981', // 에메랄드 (식비/마트/외식)
-  transportVehicle: '#3b82f6' // 블루 (교통/차량/기타)
+  onlineShopping: '#e11d48', // 로즈 레드 (온라인 쇼핑)
+  groceryMart: '#059669', // 에메랄드 그린 (마트/편의점)
+  diningOut: '#f43f5e', // 코랄 레드 (외식/카페)
+  transportVehicle: '#3b82f6', // 블루 (교통/차량/주유)
+  cultureHealthEtc: '#8b5cf6', // 바이올렛 (의료/문화/기타)
+  foodDining: '#059669' // 하위 호환
 };
 
 export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
@@ -214,8 +220,11 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
       education: 0,
       familyEvents: 0,
       onlineShopping: 0,
-      foodDining: 0,
-      transportVehicle: 0
+      groceryMart: 0,
+      diningOut: 0,
+      transportVehicle: 0,
+      cultureHealthEtc: 0,
+      foodDining: 0
     };
 
     targetMonths.forEach(m => {
@@ -255,8 +264,11 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
         donutDetailed.education += Number(m.donutCategories.detailed.education) || 0;
         donutDetailed.familyEvents += Number(m.donutCategories.detailed.familyEvents) || 0;
         donutDetailed.onlineShopping += Number(m.donutCategories.detailed.onlineShopping) || 0;
-        donutDetailed.foodDining += Number(m.donutCategories.detailed.foodDining) || 0;
+        donutDetailed.groceryMart += Number(m.donutCategories.detailed.groceryMart) || 0;
+        donutDetailed.diningOut += Number(m.donutCategories.detailed.diningOut) || 0;
         donutDetailed.transportVehicle += Number(m.donutCategories.detailed.transportVehicle) || 0;
+        donutDetailed.cultureHealthEtc += Number(m.donutCategories.detailed.cultureHealthEtc) || 0;
+        donutDetailed.foodDining += Number(m.donutCategories.detailed.foodDining) || 0;
       }
     });
 
@@ -302,8 +314,11 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
       education: Math.round(donutDetailed.education / monthsCount),
       familyEvents: Math.round(donutDetailed.familyEvents / monthsCount),
       onlineShopping: Math.round(donutDetailed.onlineShopping / monthsCount),
-      foodDining: Math.round(donutDetailed.foodDining / monthsCount),
-      transportVehicle: Math.round(donutDetailed.transportVehicle / monthsCount)
+      groceryMart: Math.round(donutDetailed.groceryMart / monthsCount),
+      diningOut: Math.round(donutDetailed.diningOut / monthsCount),
+      transportVehicle: Math.round(donutDetailed.transportVehicle / monthsCount),
+      cultureHealthEtc: Math.round(donutDetailed.cultureHealthEtc / monthsCount),
+      foodDining: Math.round(donutDetailed.foodDining / monthsCount)
     };
 
     return {
@@ -435,7 +450,7 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
     const totalExp = Number(cashflowSummary.total.expense) || 1;
 
     if (donutMode === 'detailed') {
-      // 9대 정밀 카테고리
+      // 11대 정밀 카테고리
       const d = cashflowSummary.total.donutDetailed;
       const raw = [
         {
@@ -495,20 +510,36 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
           color: DETAILED_CATEGORY_COLORS.onlineShopping
         },
         {
-          id: 'foodDining',
-          name: '식비 / 마트 / 외식 / 카페',
-          subtext: '식당, 배달의민족, 마트, 카페 등',
+          id: 'groceryMart',
+          name: '마트 / 편의점 / 식료품',
+          subtext: '홈플러스, 다이소, CU, GS25, 세븐일레븐 등',
           type: '변동비',
-          value: d.foodDining,
-          color: DETAILED_CATEGORY_COLORS.foodDining
+          value: d.groceryMart,
+          color: DETAILED_CATEGORY_COLORS.groceryMart
+        },
+        {
+          id: 'diningOut',
+          name: '외식 / 식당 / 배달 / 카페',
+          subtext: '식당, 배달의민족, 스타벅스, 치킨 등',
+          type: '변동비',
+          value: d.diningOut,
+          color: DETAILED_CATEGORY_COLORS.diningOut
         },
         {
           id: 'transportVehicle',
-          name: '교통 / 차량 / 기타 소비',
-          subtext: '주유소, 하이패스, 카카오T, 의료 등',
+          name: '교통 / 차량 / 주유',
+          subtext: '주유소, 하이패스, 카카오T, 차량정비 등',
           type: '변동비',
           value: d.transportVehicle,
           color: DETAILED_CATEGORY_COLORS.transportVehicle
+        },
+        {
+          id: 'cultureHealthEtc',
+          name: '의료 / 문화 / 기타 소비',
+          subtext: '병원, 약국, 여가문화, 기타 생활비',
+          type: '변동비',
+          value: d.cultureHealthEtc,
+          color: DETAILED_CATEGORY_COLORS.cultureHealthEtc
         }
       ].filter(item => item.value > 0);
 
@@ -518,7 +549,7 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
         ratio: Number(((item.value / totalExp) * 100).toFixed(1))
       }));
     } else {
-      // 6대 대분류
+      // 핵심 대분류 (8대 카테고리)
       const d = cashflowSummary.total.donutDetailed;
       const raw = [
         {
@@ -554,20 +585,36 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
           color: SIMPLE_CATEGORY_COLORS.onlineShopping
         },
         {
-          id: 'foodDining',
-          name: '식비 / 마트 / 외식 / 카페',
-          subtext: '식료품 및 외식 소비',
+          id: 'groceryMart',
+          name: '마트 / 편의점 / 식료품',
+          subtext: '홈플러스, 다이소, 편의점',
           type: '변동비',
-          value: d.foodDining,
-          color: SIMPLE_CATEGORY_COLORS.foodDining
+          value: d.groceryMart,
+          color: SIMPLE_CATEGORY_COLORS.groceryMart
+        },
+        {
+          id: 'diningOut',
+          name: '외식 / 식당 / 배달 / 카페',
+          subtext: '외식, 배달음식, 카페',
+          type: '변동비',
+          value: d.diningOut,
+          color: SIMPLE_CATEGORY_COLORS.diningOut
         },
         {
           id: 'transportVehicle',
-          name: '교통 / 차량 / 기타 소비',
-          subtext: '주유, 통행료, 교통 및 기타',
+          name: '교통 / 차량 / 주유',
+          subtext: '주유, 통행료, 교통',
           type: '변동비',
           value: d.transportVehicle,
           color: SIMPLE_CATEGORY_COLORS.transportVehicle
+        },
+        {
+          id: 'cultureHealthEtc',
+          name: '의료 / 문화 / 기타 소비',
+          subtext: '병원, 약국, 여가 및 기타',
+          type: '변동비',
+          value: d.cultureHealthEtc,
+          color: SIMPLE_CATEGORY_COLORS.cultureHealthEtc
         }
       ].filter(item => item.value > 0);
 
@@ -839,11 +886,17 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
               <span className="px-1.5 py-0.5 rounded bg-slate-800 text-pink-300">
                 교육비 {formatMoney(cashflowSummary.total.education)}
               </span>
+              <span className="px-1.5 py-0.5 rounded bg-slate-800 text-rose-300">
+                쇼핑 {formatMoney(cashflowSummary.total.donutDetailed.onlineShopping)}
+              </span>
+              <span className="px-1.5 py-0.5 rounded bg-slate-800 text-emerald-300">
+                마트 {formatMoney(cashflowSummary.total.donutDetailed.groceryMart)}
+              </span>
+              <span className="px-1.5 py-0.5 rounded bg-slate-800 text-red-300">
+                외식 {formatMoney(cashflowSummary.total.donutDetailed.diningOut)}
+              </span>
               <span className="px-1.5 py-0.5 rounded bg-slate-800 text-orange-300">
                 경조사 {formatMoney(cashflowSummary.total.eventExpense)}
-              </span>
-              <span className="px-1.5 py-0.5 rounded bg-slate-800 text-rose-300">
-                카드 {formatMoney(cashflowSummary.total.cardPureVariable)}
               </span>
             </div>
           </div>
@@ -1042,7 +1095,7 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
                 className="px-2 py-1 rounded-lg text-[11px] font-semibold bg-slate-800 text-slate-300 hover:text-white border border-slate-700 transition-all"
                 title={donutMode === 'detailed' ? '대분류로 보기' : '정밀 카테고리로 보기'}
               >
-                {donutMode === 'detailed' ? '정밀 9대' : '대분류'}
+                {donutMode === 'detailed' ? '정밀 11대' : '대분류'}
               </button>
               <button
                 onClick={() => setIsDonutFullscreen(true)}
@@ -1579,6 +1632,89 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
             )}
           </div>
         </div>
+
+        {/* 변동 생활 소비 5대 항목 투명 분해 (온라인 쇼핑, 마트/편의점, 외식 분리) */}
+        <div className="mt-4 pt-3 border-t border-slate-800/80">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2.5">
+            <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+              <CreditCard className="w-3.5 h-3.5 text-rose-400" />
+              변동 생활 소비 5대 항목 분해
+            </span>
+            <span className="text-[11px] text-slate-400">
+              카드 순수소비 총 <strong className="text-white font-mono">{formatMoney(cashflowSummary.total.cardPureVariable)}</strong>
+              {cashflowSummary.isAggregate && (
+                <span> (월평균 <strong className="text-rose-300 font-mono">{formatMoney(cashflowSummary.avg.cardPureVariable)}</strong>)</span>
+              )}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 text-center">
+            {/* 온라인쇼핑 */}
+            <div className="p-3 rounded-xl bg-slate-950/60 border border-rose-500/30">
+              <span className="text-[11px] text-rose-400 font-semibold block truncate">온라인 쇼핑 / 이커머스</span>
+              <span className="text-xs sm:text-sm font-bold text-white block mt-0.5">
+                {formatMoney(cashflowSummary.total.donutDetailed.onlineShopping)}
+              </span>
+              {cashflowSummary.isAggregate && (
+                <span className="text-[10px] text-rose-300/80 block mt-0.5">
+                  월 {formatMoney(cashflowSummary.avg.donutDetailed.onlineShopping)}
+                </span>
+              )}
+            </div>
+
+            {/* 마트/편의점 */}
+            <div className="p-3 rounded-xl bg-slate-950/60 border border-emerald-500/30">
+              <span className="text-[11px] text-emerald-400 font-semibold block truncate">마트 / 편의점 / 식료품</span>
+              <span className="text-xs sm:text-sm font-bold text-white block mt-0.5">
+                {formatMoney(cashflowSummary.total.donutDetailed.groceryMart)}
+              </span>
+              {cashflowSummary.isAggregate && (
+                <span className="text-[10px] text-emerald-300/80 block mt-0.5">
+                  월 {formatMoney(cashflowSummary.avg.donutDetailed.groceryMart)}
+                </span>
+              )}
+            </div>
+
+            {/* 외식/식당/카페 */}
+            <div className="p-3 rounded-xl bg-slate-950/60 border border-red-500/30">
+              <span className="text-[11px] text-red-400 font-semibold block truncate">외식 / 식당 / 배달 / 카페</span>
+              <span className="text-xs sm:text-sm font-bold text-white block mt-0.5">
+                {formatMoney(cashflowSummary.total.donutDetailed.diningOut)}
+              </span>
+              {cashflowSummary.isAggregate && (
+                <span className="text-[10px] text-red-300/80 block mt-0.5">
+                  월 {formatMoney(cashflowSummary.avg.donutDetailed.diningOut)}
+                </span>
+              )}
+            </div>
+
+            {/* 교통/차량 */}
+            <div className="p-3 rounded-xl bg-slate-950/60 border border-blue-500/30">
+              <span className="text-[11px] text-blue-400 font-semibold block truncate">교통 / 차량 / 주유</span>
+              <span className="text-xs sm:text-sm font-bold text-white block mt-0.5">
+                {formatMoney(cashflowSummary.total.donutDetailed.transportVehicle)}
+              </span>
+              {cashflowSummary.isAggregate && (
+                <span className="text-[10px] text-blue-300/80 block mt-0.5">
+                  월 {formatMoney(cashflowSummary.avg.donutDetailed.transportVehicle)}
+                </span>
+              )}
+            </div>
+
+            {/* 의료/문화/기타 */}
+            <div className="p-3 rounded-xl bg-slate-950/60 border border-purple-500/30">
+              <span className="text-[11px] text-purple-400 font-semibold block truncate">의료 / 문화 / 기타 생활</span>
+              <span className="text-xs sm:text-sm font-bold text-white block mt-0.5">
+                {formatMoney(cashflowSummary.total.donutDetailed.cultureHealthEtc)}
+              </span>
+              {cashflowSummary.isAggregate && (
+                <span className="text-[10px] text-purple-300/80 block mt-0.5">
+                  월 {formatMoney(cashflowSummary.avg.donutDetailed.cultureHealthEtc)}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* ------------------------------------------------------------- */}
@@ -1617,7 +1753,7 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
                         : 'text-slate-400 hover:text-white'
                     }`}
                   >
-                    정밀 9대 카테고리
+                    정밀 11대 카테고리
                   </button>
                   <button
                     onClick={() => setDonutMode('simple')}
