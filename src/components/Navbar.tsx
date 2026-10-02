@@ -91,6 +91,16 @@ export const Navbar: React.FC<NavbarProps> = ({
               지출 트렌드
             </button>
             <button
+              onClick={() => setActiveTab('cardAnalytics')}
+              className={`px-3.5 py-2 rounded-lg text-sm font-medium min-h-[44px] flex items-center transition-all ${
+                activeTab === 'cardAnalytics'
+                  ? 'bg-brand-500 text-white shadow-md shadow-brand-500/25'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+              }`}
+            >
+              카드 소비 상세
+            </button>
+            <button
               onClick={() => setActiveTab('transactions')}
               className={`px-3.5 py-2 rounded-lg text-sm font-medium min-h-[44px] flex items-center transition-all ${
                 activeTab === 'transactions'

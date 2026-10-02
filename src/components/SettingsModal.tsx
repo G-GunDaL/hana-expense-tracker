@@ -73,7 +73,23 @@ CREATE TABLE IF NOT EXISTS monthly_financial_summaries (
     savings_rate NUMERIC(5, 2) DEFAULT 0,     -- 저축률 (%)
     card_mom_growth NUMERIC(5, 2) DEFAULT 0,  -- 카드값 전월 대비 증감률 (%)
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);`;
+);
+
+-- 3. 현대카드 이용대금명세서 상세 테이블
+CREATE TABLE IF NOT EXISTS card_statements (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    statement_month VARCHAR(7) NOT NULL,      -- e.g. '2026-09'
+    tx_date DATE NOT NULL,
+    card_name VARCHAR(100),
+    card_owner VARCHAR(20),                   -- '본인' or '가족'
+    merchant VARCHAR(200) NOT NULL,
+    normalized_merchant VARCHAR(100),
+    category VARCHAR(50) NOT NULL,
+    amount NUMERIC NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+    CONSTRAINT uq_card_stmt UNIQUE (tx_date, card_name, merchant, amount)
+);
+CREATE INDEX IF NOT EXISTS idx_card_stmt_month ON card_statements(statement_month);`;
 
   const handleCopySql = () => {
     navigator.clipboard.writeText(supabaseDdlSql);

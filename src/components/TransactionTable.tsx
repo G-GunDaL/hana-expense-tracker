@@ -40,9 +40,12 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
   const [editCategory, setEditCategory] = useState('');
   const [editMemo, setEditMemo] = useState('');
 
+  const safeTransactions = Array.isArray(transactions) ? transactions : [];
+
   // 필터링 및 정렬
   const filteredTransactions = useMemo(() => {
-    return transactions.filter(tx => {
+    return safeTransactions.filter(tx => {
+      if (!tx) return false;
       // 1. 자산이동 격리 토글
       if (hideInternal && tx.isInternalTransfer) {
         return false;

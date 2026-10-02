@@ -17,15 +17,34 @@ interface KPICardsProps {
   stats: CoreKPIStats;
 }
 
-export const KPICards: React.FC<KPICardsProps> = ({ stats }) => {
+export const KPICards: React.FC<KPICardsProps> = ({ stats: rawStats }) => {
+  const stats: CoreKPIStats = rawStats || {
+    avgSurplusCash: 0,
+    estAnnualSavings: 0,
+    avgSavingsRate: 0,
+    prevYearSavingsRate: 0,
+    currentYearSavingsRate: 0,
+    recentCardExpense: 0,
+    prevCardExpense: 0,
+    cardMomGrowthRate: 0,
+    isCardAlert: false,
+    kimChulTotal: 0,
+    eventExpenseTotal: 0,
+    eventAnnualAvg: 0,
+    totalSalary: 0,
+    totalPureExpense: 0,
+    totalInternalTransfer: 0,
+    monthCount: 0
+  };
+
   // 포맷팅 헬퍼
-  const formatManwon = (amount: number) => {
-    const manwon = Math.round(amount / 10000);
+  const formatManwon = (amount: number = 0) => {
+    const manwon = Math.round((amount || 0) / 10000);
     return `${manwon.toLocaleString()}만 원`;
   };
 
-  const formatEok = (amount: number) => {
-    const eok = (amount / 100000000).toFixed(2);
+  const formatEok = (amount: number = 0) => {
+    const eok = ((amount || 0) / 100000000).toFixed(2);
     return `${eok}억 원`;
   };
 

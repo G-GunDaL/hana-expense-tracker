@@ -78,3 +78,57 @@ export interface SupabaseConfig {
   anonKey: string;
   isConnected: boolean;
 }
+
+// -------------------------------------------------------------
+// 현대카드 명세서 데이터 타입
+// -------------------------------------------------------------
+export type CardCategory =
+  | '교육/학원'
+  | '주거/공과금'
+  | '통신비'
+  | '생활렌탈/구독'
+  | '교통/택시'
+  | '통행료/하이패스'
+  | '차량/주유/정비'
+  | '온라인쇼핑'
+  | '마트/편의점'
+  | '배달음식'
+  | '카페/베이커리'
+  | '외식/식당'
+  | '문화/여행/여가'
+  | '의료/건강'
+  | '뷰티/생활서비스'
+  | '금융/연회비'
+  | '기타소비';
+
+export interface CardStatementTx {
+  id: string;
+  statementMonth: string; // 'YYYY-MM'
+  txDate: string; // 'YYYY-MM-DD'
+  cardName: string; // 'MX Black', '가족 X BOOST', 'ZERO Ed3', '하이패스' 등
+  cardOwner: '본인' | '가족';
+  merchant: string; // 원본 가맹점명
+  normalizedMerchant: string; // 정제된 대표 가맹점명 (Top 5 집계용)
+  category: string; // 8대 정밀 카테고리
+  amount: number; // 실제 결제/청구 금액 (원)
+  discountAmt?: number; // 청구할인 등
+  isFixed: boolean; // 고정성 지출 여부 (관리비, 통신비, 가스, 렌탈, 학원비)
+  rawIndex?: number;
+  memo?: string;
+  createdAt?: string;
+}
+
+export interface CardMonthSummary {
+  statementMonth: string;
+  totalAmount: number;
+  selfAmount: number;
+  familyAmount: number;
+  selfRatio: number; // %
+  familyRatio: number; // %
+  fixedAmount: number; // 고정성 카드지출
+  variableAmount: number; // 순수 변동 소비
+  txCount: number;
+  topMerchants: { name: string; amount: number; count: number }[];
+  categoryTotals: Record<string, number>;
+  momGrowthRate?: number; // 전월비 증감률 (%)
+}

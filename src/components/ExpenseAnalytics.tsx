@@ -34,13 +34,17 @@ interface ExpenseAnalyticsProps {
 export const ExpenseAnalytics: React.FC<ExpenseAnalyticsProps> = ({ summaries, transactions }) => {
   const [activeSubTab, setActiveSubTab] = useState<'category' | 'trend' | 'card' | 'familyEvent'>('category');
 
+  const safeTransactions = Array.isArray(transactions) ? transactions : [];
+  const safeSummaries = Array.isArray(summaries) ? summaries : [];
+
   const formatManwon = (v: number) => `${Math.round(v / 10000).toLocaleString()}만원`;
 
   // 1. 카테고리별 전체 누적 지출 집계
   const categoryTotals: Record<string, number> = {};
-  transactions.forEach(tx => {
-    if (tx.outAmt > 0 && !tx.isInternalTransfer) {
-      categoryTotals[tx.category] = (categoryTotals[tx.category] || 0) + tx.outAmt;
+  safeTransactions.forEach(tx => {
+    if (tx && tx.outAmt > 0 && !tx.isInternalTransfer) {
+      const cat = tx.category || '기타';
+      categoryTotals[cat] = (categoryTotals[cat] || 0) + tx.outAmt;
     }
   });
 
@@ -55,18 +59,18 @@ export const ExpenseAnalytics: React.FC<ExpenseAnalyticsProps> = ({ summaries, t
     .sort((a, b) => b.value - a.value);
 
   // 2. 비정기 경조사비 상세 필터
-  const eventTxs = transactions.filter(tx => 
-    tx.outAmt > 0 && 
-    (tx.category === '비정기지출:경조사비' || ['김철', '유병옥', '김종호', '나상길'].some(k => tx.desc.includes(k)))
-  ).sort((a, b) => b.txDatetime.localeCompare(a.txDatetime));
+  const eventTxs = safeTransactions.filter(tx => 
+    tx && tx.outAmt > 0 && 
+    (tx.category === '비정기지출:경조사비' || ['김철', '유병옥', '김종호', '나상길'].some(k => (tx.desc || '').includes(k)))
+  ).sort((a, b) => (b.txDatetime || '').localeCompare(a.txDatetime || ''));
 
   // 연도별 경조사비 집계
   const eventByYear: Record<string, { total: number; kimChul: number; others: number }> = {};
   eventTxs.forEach(tx => {
-    const y = tx.txDatetime.substring(0, 4);
+    const y = tx.txDatetime ? tx.txDatetime.substring(0, 4) : '기타';
     if (!eventByYear[y]) eventByYear[y] = { total: 0, kimChul: 0, others: 0 };
     eventByYear[y].total += tx.outAmt;
-    if (tx.desc.includes('김철')) {
+    if (tx.desc && tx.desc.includes('김철')) {
       eventByYear[y].kimChul += tx.outAmt;
     } else {
       eventByYear[y].others += tx.outAmt;
@@ -199,28 +203,34 @@ export const ExpenseAnalytics: React.FC<ExpenseAnalyticsProps> = ({ summaries, t
       {/* 탭 2: 월별 수지 트렌드 */}
       {activeSubTab === 'trend' && (
         <div className="mt-6">
-          <div className="h-80 sm:h-96">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={summaries} margin={{ top: 15, right: 15, left: -10, bottom: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                <XAxis dataKey="yearMonth" stroke="#64748b" fontSize={11} tickLine={false} />
-                <YAxis 
-                  stroke="#64748b" 
-                  fontSize={11} 
-                  tickLine={false} 
-                  axisLine={false}
-                  tickFormatter={v => `${(v/10000).toLocaleString()}만`}
-                />
-                <Tooltip 
-                  formatter={(v: number, name: string) => [formatManwon(v), name]}
-                  contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px' }}
-                />
-                <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
-                <Bar dataKey="salaryIncome" name="근로소득(급여)" fill="#008485" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="pureExpense" name="실질 가계지출" fill="#e60050" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="surplusCash" name="잉여 현금 (저축가능액)" fill="#10b981" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="h-80 sm:h-96" style={{ minHeight: 320 }}>
+            {safeSummaries.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={safeSummaries} margin={{ top: 15, right: 15, left: -10, bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                  <XAxis dataKey="yearMonth" stroke="#64748b" fontSize={11} tickLine={false} />
+                  <YAxis 
+                    stroke="#64748b" 
+                    fontSize={11} 
+                    tickLine={false} 
+                    axisLine={false}
+                    tickFormatter={v => `${(v/10000).toLocaleString()}만`}
+                  />
+                  <Tooltip 
+                    formatter={(v: number, name: string) => [formatManwon(v), name]}
+                    contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px' }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
+                  <Bar dataKey="salaryIncome" name="근로소득(급여)" fill="#008485" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="pureExpense" name="실질 가계지출" fill="#e60050" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="surplusCash" name="잉여 현금 (저축가능액)" fill="#10b981" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center text-slate-500 text-sm">
+                월별 수지 데이터가 없습니다.
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -228,41 +238,47 @@ export const ExpenseAnalytics: React.FC<ExpenseAnalyticsProps> = ({ summaries, t
       {/* 탭 3: 카드값 변동 (MoM) */}
       {activeSubTab === 'card' && (
         <div className="mt-6 space-y-4">
-          <div className="h-72 sm:h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={summaries} margin={{ top: 15, right: 15, left: -10, bottom: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                <XAxis dataKey="yearMonth" stroke="#64748b" fontSize={11} tickLine={false} />
-                <YAxis 
-                  stroke="#64748b" 
-                  fontSize={11} 
-                  tickLine={false} 
-                  axisLine={false}
-                  tickFormatter={v => `${(v/10000).toLocaleString()}만`}
-                />
-                <Tooltip 
-                  formatter={(v: number, name: string) => [
-                    name === '전월비 증감률(%)' ? `${v}%` : formatManwon(v),
-                    name
-                  ]}
-                  contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px' }}
-                />
-                <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
-                <Line 
-                  type="monotone" 
-                  dataKey="cardExpense" 
-                  name="현대/신한 카드 결제액" 
-                  stroke="#e60050" 
-                  strokeWidth={2.5}
-                  dot={{ r: 3, fill: '#e60050' }}
-                  activeDot={{ r: 6 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+          <div className="h-72 sm:h-80" style={{ minHeight: 300 }}>
+            {safeSummaries.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={safeSummaries} margin={{ top: 15, right: 15, left: -10, bottom: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                  <XAxis dataKey="yearMonth" stroke="#64748b" fontSize={11} tickLine={false} />
+                  <YAxis 
+                    stroke="#64748b" 
+                    fontSize={11} 
+                    tickLine={false} 
+                    axisLine={false}
+                    tickFormatter={v => `${(v/10000).toLocaleString()}만`}
+                  />
+                  <Tooltip 
+                    formatter={(v: number, name: string) => [
+                      name === '전월비 증감률(%)' ? `${v}%` : formatManwon(v),
+                      name
+                    ]}
+                    contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px' }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} />
+                  <Line 
+                    type="monotone" 
+                    dataKey="cardExpense" 
+                    name="현대/신한 카드 결제액" 
+                    stroke="#e60050" 
+                    strokeWidth={2.5}
+                    dot={{ r: 3, fill: '#e60050' }}
+                    activeDot={{ r: 6 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center text-slate-500 text-sm">
+                카드 결제 변동 데이터가 없습니다.
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {summaries.slice(-4).map((s) => (
+            {safeSummaries.slice(-4).map((s) => (
               <div 
                 key={s.yearMonth} 
                 className={`p-3 rounded-xl border ${

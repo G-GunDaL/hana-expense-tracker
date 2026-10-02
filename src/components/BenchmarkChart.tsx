@@ -28,40 +28,42 @@ interface BenchmarkChartProps {
 export const BenchmarkChart: React.FC<BenchmarkChartProps> = ({ summaries }) => {
   const [selectedYear, setSelectedYear] = useState<string>('ALL');
 
+  const safeSummaries = Array.isArray(summaries) ? summaries : [];
+
   // 통계청 기준 상수 (원)
   const BENCHMARK_AVG = 4500000; // 450만 원 (전국 4인가구 평균)
   const BENCHMARK_TOP20 = 5800000; // 580만 원 (소득 상위 20% 5분위 평균)
 
   // 연도 필터링
   const availableYears = Array.from(
-    new Set(summaries.map(s => s.yearMonth.substring(0, 4)))
-  ).sort();
+    new Set(safeSummaries.map(s => (s?.yearMonth ? s.yearMonth.substring(0, 4) : '')))
+  ).filter(Boolean).sort();
 
   const filteredSummaries = selectedYear === 'ALL'
-    ? summaries
-    : summaries.filter(s => s.yearMonth.startsWith(selectedYear));
+    ? safeSummaries
+    : safeSummaries.filter(s => s?.yearMonth && s.yearMonth.startsWith(selectedYear));
 
   // 차트용 데이터 포맷
   const chartData = filteredSummaries.map(s => ({
     yearMonth: s.yearMonth,
-    displayDate: s.yearMonth.slice(2), // '24-05' 등 모바일 가독성
-    pureExpense: s.pureExpense,
-    salaryIncome: s.salaryIncome,
-    cardExpense: s.cardExpense,
-    surplusCash: s.surplusCash,
+    displayDate: s.yearMonth ? s.yearMonth.slice(2) : '', // '24-05' 등 모바일 가독성
+    pureExpense: s.pureExpense || 0,
+    salaryIncome: s.salaryIncome || 0,
+    cardExpense: s.cardExpense || 0,
+    surplusCash: s.surplusCash || 0,
     avgBenchmark: BENCHMARK_AVG,
     top20Benchmark: BENCHMARK_TOP20,
   }));
 
   // 최근 월 기준 벤치마크 대비 현황 산출
-  const recentMonth = summaries[summaries.length - 1];
+  const recentMonth = safeSummaries.length > 0 ? safeSummaries[safeSummaries.length - 1] : null;
   const recentExpense = recentMonth ? recentMonth.pureExpense : 0;
   const recentDiffTop20 = recentExpense - BENCHMARK_TOP20;
   const recentDiffAvg = recentExpense - BENCHMARK_AVG;
 
   // 전체 기간 평균 지출
-  const totalExpense = summaries.reduce((acc, cur) => acc + cur.pureExpense, 0);
-  const avgExpense = summaries.length > 0 ? Math.round(totalExpense / summaries.length) : 0;
+  const totalExpense = safeSummaries.reduce((acc, cur) => acc + (cur?.pureExpense || 0), 0);
+  const avgExpense = safeSummaries.length > 0 ? Math.round(totalExpense / safeSummaries.length) : 0;
   const avgDiffTop20 = avgExpense - BENCHMARK_TOP20;
 
   // 원화 포맷터
@@ -232,21 +234,22 @@ export const BenchmarkChart: React.FC<BenchmarkChartProps> = ({ summaries }) => 
       </div>
 
       {/* Recharts 반응형 컨테이너 */}
-      <div className="w-full h-80 sm:h-96 mt-2">
-        <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart
-            data={chartData}
-            margin={{ top: 20, right: 15, left: -10, bottom: 25 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-            <XAxis 
-              dataKey="displayDate" 
-              stroke="#64748b" 
-              fontSize={11}
-              tickLine={false}
-              interval={window.innerWidth < 640 ? 2 : 0}
-              dy={10}
-            />
+      <div className="w-full h-80 sm:h-96 mt-2" style={{ minHeight: 320 }}>
+        {chartData.length > 0 ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart
+              data={chartData}
+              margin={{ top: 20, right: 15, left: -10, bottom: 25 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+              <XAxis 
+                dataKey="displayDate" 
+                stroke="#64748b" 
+                fontSize={11}
+                tickLine={false}
+                interval={typeof window !== 'undefined' && window.innerWidth < 640 ? 2 : 0}
+                dy={10}
+              />
             <YAxis 
               stroke="#64748b" 
               fontSize={11}
@@ -310,6 +313,11 @@ export const BenchmarkChart: React.FC<BenchmarkChartProps> = ({ summaries }) => 
             />
           </ComposedChart>
         </ResponsiveContainer>
+        ) : (
+          <div className="h-full flex items-center justify-center text-slate-500 text-sm">
+            등록된 가계 거래 데이터가 없습니다.
+          </div>
+        )}
       </div>
 
     </div>

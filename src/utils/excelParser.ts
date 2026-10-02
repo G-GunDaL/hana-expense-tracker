@@ -119,6 +119,9 @@ export async function parseHanaBankExcel(
  * 월별 집계 스냅샷(monthly_financial_summaries)을 실시간으로 산출합니다.
  */
 export function calculateMonthlySummaries(transactions: ParsedTx[]): MonthlySummary[] {
+  const safeTransactions = Array.isArray(transactions) ? transactions : [];
+  if (safeTransactions.length === 0) return [];
+
   const map = new Map<string, {
     salaryIncome: number;
     otherIncome: number;
@@ -132,7 +135,8 @@ export function calculateMonthlySummaries(transactions: ParsedTx[]): MonthlySumm
     txCount: number;
   }>();
 
-  transactions.forEach(tx => {
+  safeTransactions.forEach(tx => {
+    if (!tx || !tx.txDatetime) return;
     const ym = tx.txDatetime.substring(0, 7);
     if (!ym || ym.length < 7) return;
 
@@ -233,7 +237,10 @@ export function calculateCoreKPIStats(
   transactions: ParsedTx[],
   summaries: MonthlySummary[]
 ): CoreKPIStats {
-  if (summaries.length === 0) {
+  const safeSummaries = Array.isArray(summaries) ? summaries : [];
+  const safeTransactions = Array.isArray(transactions) ? transactions : [];
+
+  if (safeSummaries.length === 0) {
     return {
       avgSurplusCash: 0,
       estAnnualSavings: 0,
@@ -254,27 +261,30 @@ export function calculateCoreKPIStats(
     };
   }
 
-  const monthCount = summaries.length;
+  const monthCount = safeSummaries.length;
   let totalSalary = 0;
   let totalPureExpense = 0;
   let totalInternalTransfer = 0;
   let eventExpenseTotal = 0;
   let kimChulTotal = 0;
 
-  summaries.forEach(s => {
-    totalSalary += s.salaryIncome;
-    totalPureExpense += s.pureExpense;
-    totalInternalTransfer += s.internalTransferOut;
+  safeSummaries.forEach(s => {
+    if (!s) return;
+    totalSalary += (s.salaryIncome || 0);
+    totalPureExpense += (s.pureExpense || 0);
+    totalInternalTransfer += (s.internalTransferOut || 0);
   });
 
   // 개별 거래에서 김철 및 경조사비 정밀 집계
-  transactions.forEach(tx => {
-    if (tx.outAmt > 0) {
-      if (tx.desc.includes('김철')) {
-        kimChulTotal += tx.outAmt;
+  safeTransactions.forEach(tx => {
+    if (!tx) return;
+    const outAmt = Number(tx.outAmt) || 0;
+    if (outAmt > 0) {
+      if (tx.desc && tx.desc.includes('김철')) {
+        kimChulTotal += outAmt;
       }
       if (tx.category === '비정기지출:경조사비') {
-        eventExpenseTotal += tx.outAmt;
+        eventExpenseTotal += outAmt;
       }
     }
   });
