@@ -8,6 +8,9 @@ const STORAGE_KEY_CARD_TXS = 'hana_card_statements_cache';
  * 로컬 캐시에서 카드 거래내역 가져오기
  */
 export function getCachedCardStatements(): CardStatementTx[] {
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return initialDemoCardTransactions;
+  }
   try {
     const raw = localStorage.getItem(STORAGE_KEY_CARD_TXS);
     if (raw) {
@@ -32,6 +35,7 @@ export function getCachedCardStatements(): CardStatementTx[] {
  * 로컬 캐시에 카드 거래내역 저장
  */
 export function saveCachedCardStatements(txs: CardStatementTx[]): void {
+  if (typeof window === 'undefined' || !window.localStorage) return;
   try {
     localStorage.setItem(STORAGE_KEY_CARD_TXS, JSON.stringify(txs));
   } catch (err) {
@@ -131,5 +135,10 @@ export async function uploadCardStatementsToSupabase(
 }
 
 export function clearCardStatementCache(): void {
-  localStorage.removeItem(STORAGE_KEY_CARD_TXS);
+  if (typeof window === 'undefined' || !window.localStorage) return;
+  try {
+    localStorage.removeItem(STORAGE_KEY_CARD_TXS);
+  } catch (e) {
+    console.warn('Failed to clear card statement cache:', e);
+  }
 }

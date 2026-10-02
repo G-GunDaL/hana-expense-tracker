@@ -41,9 +41,15 @@ export const App: React.FC = () => {
     error: dataError 
   } = useFinancialData();
 
-  // 현대카드 명세서 데이터 상태
+  // 현대카드 명세서 데이터 상태 (안전한 지연 로딩)
   const [cardTransactions, setCardTransactions] = useState<CardStatementTx[]>(() => {
-    return getCachedCardStatements();
+    if (typeof window === 'undefined') return [];
+    try {
+      return getCachedCardStatements() || [];
+    } catch (e) {
+      console.error('Failed to parse card statement cache:', e);
+      return [];
+    }
   });
 
   const [activeTab, setActiveTab] = useState<string>('dashboard');

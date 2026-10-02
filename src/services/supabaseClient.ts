@@ -22,17 +22,19 @@ export function getSavedSupabaseConfig(): SupabaseConfig {
     getEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY') || 
     getEnv('VITE_SUPABASE_ANON_KEY');
 
-  const saved = localStorage.getItem(STORAGE_KEY_CONFIG);
-  if (saved) {
+  if (typeof window !== 'undefined' && window.localStorage) {
     try {
-      const parsed = JSON.parse(saved);
-      return {
-        url: parsed.url || envUrl,
-        anonKey: parsed.anonKey || envKey,
-        isConnected: false
-      };
-    } catch {
-      // ignore
+      const saved = localStorage.getItem(STORAGE_KEY_CONFIG);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          url: parsed.url || envUrl,
+          anonKey: parsed.anonKey || envKey,
+          isConnected: false
+        };
+      }
+    } catch (e) {
+      console.warn('Failed to read supabase config from localStorage:', e);
     }
   }
 
@@ -229,16 +231,19 @@ export async function uploadMonthlySummariesToSupabase(
  * 로컬 캐시 관리 (hana_transactions_cache & hana_tx_cache 양방향 지원)
  */
 export function getCachedTransactions(): ParsedTx[] | null {
-  const data = localStorage.getItem(STORAGE_KEY_TXS) || localStorage.getItem(STORAGE_KEY_TX_FALLBACK);
-  if (!data) return null;
+  if (typeof window === 'undefined' || !window.localStorage) return null;
   try {
+    const data = localStorage.getItem(STORAGE_KEY_TXS) || localStorage.getItem(STORAGE_KEY_TX_FALLBACK);
+    if (!data) return null;
     return JSON.parse(data);
-  } catch {
+  } catch (e) {
+    console.warn('Failed to parse cached transactions:', e);
     return null;
   }
 }
 
 export function saveCachedTransactions(txs: ParsedTx[]): void {
+  if (typeof window === 'undefined' || !window.localStorage) return;
   try {
     const serialized = JSON.stringify(txs);
     localStorage.setItem(STORAGE_KEY_TXS, serialized);
@@ -249,7 +254,12 @@ export function saveCachedTransactions(txs: ParsedTx[]): void {
 }
 
 export function clearLocalStorage(): void {
-  localStorage.removeItem(STORAGE_KEY_TXS);
-  localStorage.removeItem(STORAGE_KEY_TX_FALLBACK);
-  localStorage.removeItem(STORAGE_KEY_SUMMARIES);
+  if (typeof window === 'undefined' || !window.localStorage) return;
+  try {
+    localStorage.removeItem(STORAGE_KEY_TXS);
+    localStorage.removeItem(STORAGE_KEY_TX_FALLBACK);
+    localStorage.removeItem(STORAGE_KEY_SUMMARIES);
+  } catch (e) {
+    console.warn('Failed to clear localStorage:', e);
+  }
 }
