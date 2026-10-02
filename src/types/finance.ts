@@ -166,15 +166,31 @@ export interface UnifiedMonthlyData {
   totalEduExpense: number; // 통합 자녀 교육비 (청주페이 + 카드 학원비)
   eduCheongjuPay: number; // 청주페이 충전액 (은행 출금)
   eduCardAcademy: number; // 카드 학원 결제액
-  bankOtherExpense: number; // 은행 기타 비정기 송금/경조사
+  eventExpense: number; // 경조사비 (부모님 비정기, 장인/장모, 가족 친지)
+  otherBankTransfer: number; // 기타 비정기 송금
+  bankOtherExpense: number; // 경조사비 + 기타 비정기 송금
 
   // 4. 지출 대 카테고리 (도넛 차트용)
   donutCategories: {
-    fixed: number; // 고정비(관리비/통신비/공과금/보험 등)
+    fixed: number; // 고정비(관리비/통신비/공과금/보험/배우자생활비/부모님용돈)
     education: number; // 자녀 교육비 (청주페이 + 카드 학원비)
+    familyEvents: number; // 경조사비 & 비정기 송금
     onlineShopping: number; // 온라인 쇼핑 / 이커머스 (쿠팡 등)
     foodDining: number; // 식비 / 마트 / 편의점 / 외식
     transportVehicle: number; // 교통 / 차량 / 기타
+
+    // 9대 정밀 카테고리 (전체화면 정밀 분석용)
+    detailed: {
+      spouseLiving: number; // 고정: 배우자 생활비
+      insurance: number; // 고정: 보장성 보험료
+      parentsAllowance: number; // 고정: 부모님 정기용돈
+      housingUtilities: number; // 고정: 주거 관리비/공과금/렌탈/통신
+      education: number; // 자녀 교육비 (청주페이 + 카드 학원비)
+      familyEvents: number; // 비정기: 경조사비 & 가족 비정기 송금
+      onlineShopping: number; // 온라인 쇼핑 / 이커머스
+      foodDining: number; // 식비 / 마트 / 편의점 / 외식 / 카페
+      transportVehicle: number; // 교통 / 차량 / 주유 / 기타 생활소비
+    };
   };
 
   // 5. 잉여현금 (Surplus) & 저축률

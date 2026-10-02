@@ -27,6 +27,11 @@ export function isBankFixedExpense(desc: string, category: string = ''): boolean
   const c = (category || '').trim();
   const d = (desc || '').trim();
 
+  // 경조사비나 기타송금 등 비정기 지출은 고정비가 아님
+  if (c.startsWith('비정기지출:') || c === '비정기지출:경조사비' || c === '비정기지출:기타송금') {
+    return false;
+  }
+
   if (
     c === '고정지출:보장성보험료' ||
     c === '고정지출:배우자생활비' ||
@@ -35,7 +40,17 @@ export function isBankFixedExpense(desc: string, category: string = ''): boolean
     return true;
   }
 
-  return /보험|삼성생명|메리츠|현대해상|흥화|IMLI|DGBL|Abllife|김소영|홍정수|이길자|대출|이자|공과금/i.test(d);
+  return /보험|삼성생명|메리츠|현대해상|흥화|IMLI|DGBL|Abllife|김소영|대출|이자|공과금/i.test(d);
+}
+
+/**
+ * 3-B. 은행 거래 중 경조사비 여부 판별
+ */
+export function isBankFamilyEvent(desc: string, category: string = ''): boolean {
+  const c = (category || '').trim();
+  const d = (desc || '').trim();
+  if (c === '비정기지출:경조사비') return true;
+  return /경조사|축의|부의|조의|화환|김철|유병옥|홍승재|나상길|김종호/i.test(d);
 }
 
 /**
@@ -115,6 +130,8 @@ export function calculateUnifiedCashFlow(
     let bankFixed = 0;
     let eduCheongjuPay = 0;
     let excludedCardTransferAmt = 0;
+    let eventExpense = 0;
+    let otherBankTransfer = 0;
     let bankOtherExpense = 0;
 
     const bankFixedDetails = {
@@ -159,22 +176,43 @@ export function calculateUnifiedCashFlow(
           continue;
         }
 
-        // 규칙 2: 은행 고정비 (보험료, 배우자생활비, 부모님용돈 등)
-        if (isBankFixedExpense(desc, cat)) {
+        // 규칙 2-A: 고정지출:배우자생활비
+        if (cat === '고정지출:배우자생활비' || desc.includes('김소영')) {
           bankFixed += outAmt;
-          if (cat === '고정지출:보장성보험료' || /보험|삼성생명|메리츠|현대해상/i.test(desc)) {
-            bankFixedDetails.insurance += outAmt;
-          } else if (cat === '고정지출:배우자생활비' || desc.includes('김소영')) {
-            bankFixedDetails.spouseLiving += outAmt;
-          } else if (cat === '고정지출:부모님정기용돈' || /홍정수|이길자/i.test(desc)) {
-            bankFixedDetails.parentsAllowance += outAmt;
-          } else {
-            bankFixedDetails.otherFixed += outAmt;
-          }
+          bankFixedDetails.spouseLiving += outAmt;
           continue;
         }
 
-        // 기타 은행 비정기 지출 (경조사비, 기타송금 등)
+        // 규칙 2-B: 고정지출:보장성보험료
+        if (cat === '고정지출:보장성보험료' || /보험|삼성생명|메리츠|현대해상|흥화|IMLI|DGBL|Abllife/i.test(desc)) {
+          bankFixed += outAmt;
+          bankFixedDetails.insurance += outAmt;
+          continue;
+        }
+
+        // 규칙 2-C: 고정지출:부모님정기용돈
+        if (cat === '고정지출:부모님정기용돈') {
+          bankFixed += outAmt;
+          bankFixedDetails.parentsAllowance += outAmt;
+          continue;
+        }
+
+        // 규칙 2-D: 기타 은행 고정비 (공과금, 대출이자 등)
+        if (isBankFixedExpense(desc, cat)) {
+          bankFixed += outAmt;
+          bankFixedDetails.otherFixed += outAmt;
+          continue;
+        }
+
+        // 규칙 E: 비정기지출:경조사비
+        if (isBankFamilyEvent(desc, cat)) {
+          eventExpense += outAmt;
+          bankOtherExpense += outAmt;
+          continue;
+        }
+
+        // 규칙 F: 기타 비정기 송금
+        otherBankTransfer += outAmt;
         bankOtherExpense += outAmt;
       }
     }
@@ -266,7 +304,7 @@ export function calculateUnifiedCashFlow(
     // 2) 통합 자녀 교육비 (청주페이 충전액 + 카드 학원비)
     const totalEduExpense = eduCheongjuPay + eduCardAcademy;
 
-    // 3) 변동생활비 (카드 순수소비 + 자녀 교육비 + 은행 기타 송금)
+    // 3) 변동생활비 (카드 순수소비 + 자녀 교육비 + 은행 기타 송금 및 경조사비)
     const totalVariable = cardPureVariable + totalEduExpense + bankOtherExpense;
 
     // 4) 총지출 & 잉여현금 & 저축가능률
@@ -275,13 +313,31 @@ export function calculateUnifiedCashFlow(
     const savingsRate = totalIncome > 0 ? Number(((netSurplus / totalIncome) * 100).toFixed(1)) : 0;
     const isDeficit = netSurplus < 0;
 
-    // 도넛 차트 5대 카테고리 구성
+    // 카드 결제 고정비 + 은행 기타 고정비 = 주거/공과금/렌탈/통신
+    const housingUtilities = cardFixed + bankFixedDetails.otherFixed;
+    // 경조사비 + 기타 비정기 송금
+    const familyEvents = eventExpense + otherBankTransfer;
+
+    // 도넛 차트 5대 대분류 및 9대 정밀 카테고리 구성
     const donutCategories = {
       fixed: totalFixed,
       education: totalEduExpense,
+      familyEvents: familyEvents,
       onlineShopping: donutOnlineShopping,
       foodDining: donutFoodDining,
-      transportVehicle: donutTransportVehicle + bankOtherExpense
+      transportVehicle: donutTransportVehicle,
+
+      detailed: {
+        spouseLiving: bankFixedDetails.spouseLiving,
+        insurance: bankFixedDetails.insurance,
+        parentsAllowance: bankFixedDetails.parentsAllowance,
+        housingUtilities: housingUtilities,
+        education: totalEduExpense,
+        familyEvents: familyEvents,
+        onlineShopping: donutOnlineShopping,
+        foodDining: donutFoodDining,
+        transportVehicle: donutTransportVehicle
+      }
     };
 
     result.push({
@@ -308,6 +364,8 @@ export function calculateUnifiedCashFlow(
       totalEduExpense,
       eduCheongjuPay,
       eduCardAcademy,
+      eventExpense,
+      otherBankTransfer,
       bankOtherExpense,
       donutCategories,
       netSurplus,

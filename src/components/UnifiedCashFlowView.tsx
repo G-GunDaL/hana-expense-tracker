@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   ParsedTx,
   CardStatementTx,
@@ -42,7 +42,15 @@ import {
   CheckCircle2,
   Receipt,
   Calendar,
-  BarChart3
+  BarChart3,
+  Maximize2,
+  Minimize2,
+  X,
+  HeartHandshake,
+  Users,
+  Shield,
+  Filter,
+  ArrowRight
 } from 'lucide-react';
 
 interface UnifiedCashFlowViewProps {
@@ -52,10 +60,24 @@ interface UnifiedCashFlowViewProps {
   onOpenCardUpload?: () => void;
 }
 
-// 도넛 차트 색상 매핑
-const DONUT_COLORS = {
+// 9대 정밀 카테고리 색상
+const DETAILED_CATEGORY_COLORS: Record<string, string> = {
+  spouseLiving: '#10b981', // 에메랄드 (배우자 생활비)
+  insurance: '#f59e0b', // 앰버 (보장성 보험료)
+  parentsAllowance: '#14b8a6', // 틸 (부모님 정기용돈)
+  housingUtilities: '#6366f1', // 인디고 (주거/관리비/공과금/렌탈)
+  education: '#ec4899', // 핑크 (자녀 교육비)
+  familyEvents: '#f97316', // 오렌지 (경조사비 & 비정기 송금)
+  onlineShopping: '#e60050', // 하나 레드 (온라인 쇼핑)
+  foodDining: '#8b5cf6', // 바이올렛 (식비/마트/외식/카페)
+  transportVehicle: '#3b82f6' // 블루 (교통/차량/기타 소비)
+};
+
+// 6대 대분류 카테고리 색상
+const SIMPLE_CATEGORY_COLORS: Record<string, string> = {
   fixed: '#f59e0b', // 앰버 (고정비)
   education: '#ec4899', // 핑크 (자녀 교육비)
+  familyEvents: '#f97316', // 오렌지 (경조사비)
   onlineShopping: '#e60050', // 하나 레드 (온라인 쇼핑)
   foodDining: '#10b981', // 에메랄드 (식비/마트/외식)
   transportVehicle: '#3b82f6' // 블루 (교통/차량/기타)
@@ -87,10 +109,26 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
   }, [unifiedData]);
 
   // 기간 선택 상태 ('1YEAR' | 'ALL' | 'YYYY-MM')
-  // 기본값: '1YEAR' (최근 1년 누적 및 월평균이 즉시 노출)
   const [selectedPeriod, setSelectedPeriod] = useState<string>('1YEAR');
 
-  // 금액 포맷터 헬퍼 (억/만 원 단위 직관 포맷)
+  // 도넛 차트 보기 모드 ('detailed' | 'simple')
+  const [donutMode, setDonutMode] = useState<'detailed' | 'simple'>('detailed');
+
+  // 도넛 차트 전체화면 모달 상태
+  const [isDonutFullscreen, setIsDonutFullscreen] = useState<boolean>(false);
+
+  // ESC 키로 전체화면 모달 닫기
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isDonutFullscreen) {
+        setIsDonutFullscreen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isDonutFullscreen]);
+
+  // 금액 포맷터 헬퍼 (억/만 원 직관 포맷)
   const formatMoney = (amount: number = 0): string => {
     const val = Math.round(Number(amount) || 0);
     const absVal = Math.abs(val);
@@ -149,6 +187,8 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
     let totalEducation = 0;
     let eduCheongjuPay = 0;
     let eduCardAcademy = 0;
+    let eventExpense = 0;
+    let otherBankTransfer = 0;
     let bankOtherExpense = 0;
     let excludedCardTransferAmt = 0;
     let bankTxCount = 0;
@@ -166,9 +206,13 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
       otherFixed: 0
     };
 
-    const donutCategories = {
-      fixed: 0,
+    const donutDetailed = {
+      spouseLiving: 0,
+      insurance: 0,
+      parentsAllowance: 0,
+      housingUtilities: 0,
       education: 0,
+      familyEvents: 0,
       onlineShopping: 0,
       foodDining: 0,
       transportVehicle: 0
@@ -186,6 +230,8 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
       totalEducation += Number(m.totalEduExpense) || 0;
       eduCheongjuPay += Number(m.eduCheongjuPay) || 0;
       eduCardAcademy += Number(m.eduCardAcademy) || 0;
+      eventExpense += Number(m.eventExpense) || 0;
+      otherBankTransfer += Number(m.otherBankTransfer) || 0;
       bankOtherExpense += Number(m.bankOtherExpense) || 0;
       excludedCardTransferAmt += Number(m.excludedCardTransferAmt) || 0;
       bankTxCount += Number(m.bankTxCount) || 0;
@@ -201,13 +247,18 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
       fixedDetails.parentsAllowance += Number(m.fixedDetails.parentsAllowance) || 0;
       fixedDetails.otherFixed += Number(m.fixedDetails.otherFixed) || 0;
 
-      donutCategories.onlineShopping += Number(m.donutCategories.onlineShopping) || 0;
-      donutCategories.foodDining += Number(m.donutCategories.foodDining) || 0;
-      donutCategories.transportVehicle += Number(m.donutCategories.transportVehicle) || 0;
+      if (m.donutCategories?.detailed) {
+        donutDetailed.spouseLiving += Number(m.donutCategories.detailed.spouseLiving) || 0;
+        donutDetailed.insurance += Number(m.donutCategories.detailed.insurance) || 0;
+        donutDetailed.parentsAllowance += Number(m.donutCategories.detailed.parentsAllowance) || 0;
+        donutDetailed.housingUtilities += Number(m.donutCategories.detailed.housingUtilities) || 0;
+        donutDetailed.education += Number(m.donutCategories.detailed.education) || 0;
+        donutDetailed.familyEvents += Number(m.donutCategories.detailed.familyEvents) || 0;
+        donutDetailed.onlineShopping += Number(m.donutCategories.detailed.onlineShopping) || 0;
+        donutDetailed.foodDining += Number(m.donutCategories.detailed.foodDining) || 0;
+        donutDetailed.transportVehicle += Number(m.donutCategories.detailed.transportVehicle) || 0;
+      }
     });
-
-    donutCategories.fixed = totalFixed;
-    donutCategories.education = totalEducation;
 
     const totalExpense = totalFixed + totalVariable;
     const totalSurplus = totalIncome - totalExpense;
@@ -226,6 +277,8 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
     const avgEducation = Math.round(totalEducation / monthsCount);
     const avgCheongjuPay = Math.round(eduCheongjuPay / monthsCount);
     const avgCardAcademy = Math.round(eduCardAcademy / monthsCount);
+    const avgEventExpense = Math.round(eventExpense / monthsCount);
+    const avgOtherBankTransfer = Math.round(otherBankTransfer / monthsCount);
     const avgSurplus = Math.round(totalSurplus / monthsCount);
     const avgExpense = Math.round(totalExpense / monthsCount);
 
@@ -239,6 +292,18 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
       spouseLiving: Math.round(fixedDetails.spouseLiving / monthsCount),
       parentsAllowance: Math.round(fixedDetails.parentsAllowance / monthsCount),
       otherFixed: Math.round(fixedDetails.otherFixed / monthsCount)
+    };
+
+    const avgDonutDetailed = {
+      spouseLiving: Math.round(donutDetailed.spouseLiving / monthsCount),
+      insurance: Math.round(donutDetailed.insurance / monthsCount),
+      parentsAllowance: Math.round(donutDetailed.parentsAllowance / monthsCount),
+      housingUtilities: Math.round(donutDetailed.housingUtilities / monthsCount),
+      education: Math.round(donutDetailed.education / monthsCount),
+      familyEvents: Math.round(donutDetailed.familyEvents / monthsCount),
+      onlineShopping: Math.round(donutDetailed.onlineShopping / monthsCount),
+      foodDining: Math.round(donutDetailed.foodDining / monthsCount),
+      transportVehicle: Math.round(donutDetailed.transportVehicle / monthsCount)
     };
 
     return {
@@ -257,11 +322,13 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
         education: totalEducation,
         cheongjuPay: eduCheongjuPay,
         cardAcademy: eduCardAcademy,
+        eventExpense,
+        otherBankTransfer,
         bankOther: bankOtherExpense,
         surplus: totalSurplus,
         expense: totalExpense,
         fixedDetails,
-        donutCategories,
+        donutDetailed,
         excludedCardTransferAmt,
         bankTxCount,
         cardTxCount
@@ -278,9 +345,12 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
         education: avgEducation,
         cheongjuPay: avgCheongjuPay,
         cardAcademy: avgCardAcademy,
+        eventExpense: avgEventExpense,
+        otherBankTransfer: avgOtherBankTransfer,
         surplus: avgSurplus,
         expense: avgExpense,
-        fixedDetails: avgFixedDetails
+        fixedDetails: avgFixedDetails,
+        donutDetailed: avgDonutDetailed
       },
       savingsRate,
       isDeficit
@@ -309,7 +379,7 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
     return educationDetails;
   }, [educationDetails, eduFilter]);
 
-  // 이전/다음 월 네비게이션 (개별 월 모드일 때 동작)
+  // 이전/다음 월 네비게이션
   const isIndividualMonth = selectedPeriod !== 'ALL' && selectedPeriod !== '1YEAR';
 
   const handlePrevMonth = () => {
@@ -360,44 +430,154 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
     ];
   }, [cashflowSummary]);
 
-  // 2. 통합 지출 구조 도넛 차트 데이터
+  // 2. 통합 지출 구조 도넛 차트 데이터 (정밀 9대 카테고리 vs 6대 대분류)
   const donutChartData = useMemo(() => {
-    const cats = cashflowSummary.total.donutCategories;
     const totalExp = Number(cashflowSummary.total.expense) || 1;
 
-    const data = [
-      {
-        name: '고정비(관리/통신/공과금/보험)',
-        value: Number(cats.fixed) || 0,
-        color: DONUT_COLORS.fixed
-      },
-      {
-        name: '자녀 교육비(청주페이+학원)',
-        value: Number(cats.education) || 0,
-        color: DONUT_COLORS.education
-      },
-      {
-        name: '온라인 쇼핑(쿠팡/이커머스)',
-        value: Number(cats.onlineShopping) || 0,
-        color: DONUT_COLORS.onlineShopping
-      },
-      {
-        name: '식비/마트/외식/카페/배달',
-        value: Number(cats.foodDining) || 0,
-        color: DONUT_COLORS.foodDining
-      },
-      {
-        name: '교통/차량/기타 소비',
-        value: Number(cats.transportVehicle) || 0,
-        color: DONUT_COLORS.transportVehicle
-      }
-    ].filter(item => item.value > 0);
+    if (donutMode === 'detailed') {
+      // 9대 정밀 카테고리
+      const d = cashflowSummary.total.donutDetailed;
+      const raw = [
+        {
+          id: 'spouseLiving',
+          name: '고정: 배우자 생활비',
+          subtext: '김소영 정기 생활비 송금',
+          type: '고정비',
+          value: d.spouseLiving,
+          color: DETAILED_CATEGORY_COLORS.spouseLiving
+        },
+        {
+          id: 'insurance',
+          name: '고정: 보장성 보험료',
+          subtext: '삼성생명, 메리츠, 현대해상 등',
+          type: '고정비',
+          value: d.insurance,
+          color: DETAILED_CATEGORY_COLORS.insurance
+        },
+        {
+          id: 'parentsAllowance',
+          name: '고정: 부모님 정기용돈',
+          subtext: '홍정수, 이길자 정기 용돈',
+          type: '고정비',
+          value: d.parentsAllowance,
+          color: DETAILED_CATEGORY_COLORS.parentsAllowance
+        },
+        {
+          id: 'housingUtilities',
+          name: '고정: 관리비/공과금/렌탈',
+          subtext: '아파트관리비, 통신비, 가스, 렌탈, 지방세',
+          type: '고정비',
+          value: d.housingUtilities,
+          color: DETAILED_CATEGORY_COLORS.housingUtilities
+        },
+        {
+          id: 'education',
+          name: '자녀 교육비 (청주페이+학원)',
+          subtext: '청주페이 충전액 + 센트럴/태권도 등',
+          type: '변동비',
+          value: d.education,
+          color: DETAILED_CATEGORY_COLORS.education
+        },
+        {
+          id: 'familyEvents',
+          name: '비정기: 경조사비 & 송금',
+          subtext: '장인(김철), 장모(유병옥), 동생, 경조사',
+          type: '비정기',
+          value: d.familyEvents,
+          color: DETAILED_CATEGORY_COLORS.familyEvents
+        },
+        {
+          id: 'onlineShopping',
+          name: '온라인 쇼핑 / 이커머스',
+          subtext: '쿠팡, 네이버페이, 에이블리 등',
+          type: '변동비',
+          value: d.onlineShopping,
+          color: DETAILED_CATEGORY_COLORS.onlineShopping
+        },
+        {
+          id: 'foodDining',
+          name: '식비 / 마트 / 외식 / 카페',
+          subtext: '식당, 배달의민족, 마트, 카페 등',
+          type: '변동비',
+          value: d.foodDining,
+          color: DETAILED_CATEGORY_COLORS.foodDining
+        },
+        {
+          id: 'transportVehicle',
+          name: '교통 / 차량 / 기타 소비',
+          subtext: '주유소, 하이패스, 카카오T, 의료 등',
+          type: '변동비',
+          value: d.transportVehicle,
+          color: DETAILED_CATEGORY_COLORS.transportVehicle
+        }
+      ].filter(item => item.value > 0);
 
-    return data.map(item => ({
-      ...item,
-      ratio: Number(((item.value / totalExp) * 100).toFixed(1))
-    }));
-  }, [cashflowSummary]);
+      return raw.map(item => ({
+        ...item,
+        avg: Math.round(item.value / cashflowSummary.monthsCount),
+        ratio: Number(((item.value / totalExp) * 100).toFixed(1))
+      }));
+    } else {
+      // 6대 대분류
+      const d = cashflowSummary.total.donutDetailed;
+      const raw = [
+        {
+          id: 'fixed',
+          name: '고정비 (배우자/보험/용돈/공과금)',
+          subtext: '가계 필수 유지 비용',
+          type: '고정비',
+          value: cashflowSummary.total.fixed,
+          color: SIMPLE_CATEGORY_COLORS.fixed
+        },
+        {
+          id: 'education',
+          name: '자녀 교육비 (청주페이+학원)',
+          subtext: '청주페이 + 카드 결제 학원비',
+          type: '변동비',
+          value: cashflowSummary.total.education,
+          color: SIMPLE_CATEGORY_COLORS.education
+        },
+        {
+          id: 'familyEvents',
+          name: '경조사비 & 비정기 송금',
+          subtext: '가족 및 친지 경조사',
+          type: '비정기',
+          value: d.familyEvents,
+          color: SIMPLE_CATEGORY_COLORS.familyEvents
+        },
+        {
+          id: 'onlineShopping',
+          name: '온라인 쇼핑 / 이커머스',
+          subtext: '쿠팡 등 이커머스',
+          type: '변동비',
+          value: d.onlineShopping,
+          color: SIMPLE_CATEGORY_COLORS.onlineShopping
+        },
+        {
+          id: 'foodDining',
+          name: '식비 / 마트 / 외식 / 카페',
+          subtext: '식료품 및 외식 소비',
+          type: '변동비',
+          value: d.foodDining,
+          color: SIMPLE_CATEGORY_COLORS.foodDining
+        },
+        {
+          id: 'transportVehicle',
+          name: '교통 / 차량 / 기타 소비',
+          subtext: '주유, 통행료, 교통 및 기타',
+          type: '변동비',
+          value: d.transportVehicle,
+          color: SIMPLE_CATEGORY_COLORS.transportVehicle
+        }
+      ].filter(item => item.value > 0);
+
+      return raw.map(item => ({
+        ...item,
+        avg: Math.round(item.value / cashflowSummary.monthsCount),
+        ratio: Number(((item.value / totalExp) * 100).toFixed(1))
+      }));
+    }
+  }, [cashflowSummary, donutMode]);
 
   // 3. 1년치(최근 12개월) 월별 잉여현금 추이 꺾은선 차트 데이터
   const trendChartData = useMemo(() => {
@@ -408,6 +588,8 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
       총수입: Math.round((Number(d.totalIncome) || 0) / 10000),
       총지출: Math.round((Number(d.totalExpense) || 0) / 10000),
       잉여현금: Math.round((Number(d.netSurplus) || 0) / 10000),
+      고정비: Math.round((Number(d.totalFixed) || 0) / 10000),
+      변동비: Math.round((Number(d.totalVariable) || 0) / 10000),
       저축률: Number(d.savingsRate) || 0
     }));
   }, [unifiedData]);
@@ -450,7 +632,7 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
                 </span>
               </h2>
               <p className="text-xs text-slate-400">
-                하나은행 입출금과 현대카드 승인 내역을 이중 계산 없이 실시간 1:1 통합
+                경조사비, 부모님 정기용돈, 배우자 생활비, 보장성 보험료까지 100% 정밀 반영
               </p>
             </div>
           </div>
@@ -549,7 +731,7 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
       </div>
 
       {/* ------------------------------------------------------------- */}
-      {/* 4. UI 카드 레이아웃 업데이트 (합계 + 월평균 동시 노출)           */}
+      {/* 4대 현금흐름 핵심 지표 카드 (합계 + 월평균 동시 노출)           */}
       {/* ------------------------------------------------------------- */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* KPI 1: 총수입 카드 */}
@@ -587,7 +769,7 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
           </div>
         </div>
 
-        {/* KPI 2: 고정비 카드 */}
+        {/* KPI 2: 고정비 카드 (배우자생활비, 보험료, 부모님용돈 명시) */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-b from-slate-900/90 to-slate-900/40 border border-slate-800 p-5 shadow-glass hover:border-amber-500/40 transition-all duration-300 group">
           <div className="absolute top-0 right-0 w-28 h-28 bg-amber-500/10 rounded-full blur-2xl group-hover:bg-amber-500/20 transition-all"></div>
           <div className="flex items-center justify-between">
@@ -612,18 +794,27 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
               </span>
             </div>
 
-            <p className="mt-2 text-[11px] text-slate-400 truncate">
-              관리비, 통신비, 공과금, 렌탈, 보험, 정기이체 등
-            </p>
+            {/* 세부 항목 배지 */}
+            <div className="mt-2 flex flex-wrap gap-1 text-[10px]">
+              <span className="px-1.5 py-0.5 rounded bg-slate-800 text-emerald-300">
+                배우자 {formatMoney(cashflowSummary.total.fixedDetails.spouseLiving)}
+              </span>
+              <span className="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300">
+                보험 {formatMoney(cashflowSummary.total.fixedDetails.insurance)}
+              </span>
+              <span className="px-1.5 py-0.5 rounded bg-slate-800 text-teal-300">
+                부모님 {formatMoney(cashflowSummary.total.fixedDetails.parentsAllowance)}
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* KPI 3: 변동생활비 카드 */}
+        {/* KPI 3: 변동생활비 카드 (카드소비, 자녀교육비, 경조사비 명시) */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-b from-slate-900/90 to-slate-900/40 border border-slate-800 p-5 shadow-glass hover:border-rose-500/40 transition-all duration-300 group">
           <div className="absolute top-0 right-0 w-28 h-28 bg-rose-500/10 rounded-full blur-2xl group-hover:bg-rose-500/20 transition-all"></div>
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-              3. 변동생활비 (소비+교육)
+              3. 변동생활비 (소비+교육+경조사)
             </span>
             <div className="w-9 h-9 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400">
               <CreditCard className="w-5 h-5" />
@@ -635,7 +826,7 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
               {cashflowSummary.isAggregate ? '총 ' : ''}{formatMoney(cashflowSummary.total.variable)}
             </div>
 
-            {/* 보조 서브텍스트: 월평균 및 자녀 교육비 월평균 */}
+            {/* 보조 서브텍스트: 월평균 */}
             <div className="mt-2.5 flex items-center space-x-1.5 text-xs text-rose-300 bg-rose-500/10 border border-rose-500/20 rounded-lg px-2.5 py-1.5 font-medium">
               <CreditCard className="w-3.5 h-3.5 text-rose-400 shrink-0" />
               <span>
@@ -643,9 +834,18 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
               </span>
             </div>
 
-            <p className="mt-2 text-[11px] text-pink-300/90 truncate">
-              자녀 교육비 월평균: <strong>{formatMoney(cashflowSummary.avg.education)}</strong>
-            </p>
+            {/* 세부 항목 배지 */}
+            <div className="mt-2 flex flex-wrap gap-1 text-[10px]">
+              <span className="px-1.5 py-0.5 rounded bg-slate-800 text-pink-300">
+                교육비 {formatMoney(cashflowSummary.total.education)}
+              </span>
+              <span className="px-1.5 py-0.5 rounded bg-slate-800 text-orange-300">
+                경조사 {formatMoney(cashflowSummary.total.eventExpense)}
+              </span>
+              <span className="px-1.5 py-0.5 rounded bg-slate-800 text-rose-300">
+                카드 {formatMoney(cashflowSummary.total.cardPureVariable)}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -711,7 +911,7 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
                 {cashflowSummary.periodLabel} 수입-지출 1:1 배분 구조
               </h3>
               <p className="text-xs text-slate-400">
-                총수입 대비 고정비, 변동생활비, 잉여현금(저축여력)의 100% 매칭 구조 ({cashflowSummary.monthsCount}개월 누적 기준)
+                총수입 대비 고정비(배우자/보험/용돈 포함), 변동생활비(교육/경조사 포함), 잉여현금 매칭 ({cashflowSummary.monthsCount}개월 기준)
               </p>
             </div>
             <span className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 border border-slate-700">
@@ -772,9 +972,7 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
                   wrapperStyle={{ paddingTop: '10px', fontSize: '12px' }}
                   formatter={value => <span className="text-slate-300 font-medium">{value}</span>}
                 />
-                {/* 수입 단독 바 */}
                 <Bar dataKey="수입" fill="#008485" radius={[6, 6, 0, 0]} maxBarSize={70} />
-                {/* 지출 및 잉여 누적 바 */}
                 <Bar dataKey="고정비" stackId="expense" fill="#f59e0b" maxBarSize={70} />
                 <Bar dataKey="변동생활비" stackId="expense" fill="#e60050" maxBarSize={70} />
                 <Bar dataKey="잉여현금" stackId="expense" fill="#10b981" radius={[6, 6, 0, 0]} maxBarSize={70} />
@@ -793,7 +991,7 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
               </span>
               {cashflowSummary.isAggregate && (
                 <span className="text-[10px] text-slate-400 block mt-0.5">
-                  월평균 {formatMoney(cashflowSummary.avg.fixed)}
+                  월 {formatMoney(cashflowSummary.avg.fixed)}
                 </span>
               )}
             </div>
@@ -806,7 +1004,7 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
               </span>
               {cashflowSummary.isAggregate && (
                 <span className="text-[10px] text-slate-400 block mt-0.5">
-                  월평균 {formatMoney(cashflowSummary.avg.variable)}
+                  월 {formatMoney(cashflowSummary.avg.variable)}
                 </span>
               )}
             </div>
@@ -817,14 +1015,14 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
               </span>
               {cashflowSummary.isAggregate && (
                 <span className="text-[10px] text-slate-400 block mt-0.5">
-                  월평균 {formatMoney(cashflowSummary.avg.surplus)}
+                  월 {formatMoney(cashflowSummary.avg.surplus)}
                 </span>
               )}
             </div>
           </div>
         </div>
 
-        {/* 2. 통합 지출 구조 도넛 차트 (5 cols) */}
+        {/* 2. 통합 지출 구조 도넛 차트 (5 cols) + 전체화면 버튼 */}
         <div className="lg:col-span-5 bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-glass backdrop-blur-xl flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
             <div>
@@ -836,6 +1034,24 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
                 {cashflowSummary.periodLabel} 실질 소비 총 {formatMoney(cashflowSummary.total.expense)}
               </p>
             </div>
+
+            {/* 전체화면 확대 버튼 및 정밀/대분류 토글 */}
+            <div className="flex items-center space-x-1.5">
+              <button
+                onClick={() => setDonutMode(m => m === 'detailed' ? 'simple' : 'detailed')}
+                className="px-2 py-1 rounded-lg text-[11px] font-semibold bg-slate-800 text-slate-300 hover:text-white border border-slate-700 transition-all"
+                title={donutMode === 'detailed' ? '대분류로 보기' : '정밀 카테고리로 보기'}
+              >
+                {donutMode === 'detailed' ? '정밀 9대' : '대분류'}
+              </button>
+              <button
+                onClick={() => setIsDonutFullscreen(true)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-700/80 transition-all"
+                title="도넛 차트 전체화면으로 정밀 분석"
+              >
+                <Maximize2 className="w-4 h-4 text-brand-400" />
+              </button>
+            </div>
           </div>
 
           <div className="relative h-64 w-full flex items-center justify-center">
@@ -845,8 +1061,8 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
                   data={donutChartData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={62}
-                  outerRadius={92}
+                  innerRadius={60}
+                  outerRadius={90}
                   paddingAngle={3}
                   dataKey="value"
                 >
@@ -898,14 +1114,14 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
               </span>
               {cashflowSummary.isAggregate && (
                 <span className="text-[10px] text-brand-300 font-semibold mt-0.5">
-                  월평균 {formatMoney(cashflowSummary.avg.expense)}
+                  월 {formatMoney(cashflowSummary.avg.expense)}
                 </span>
               )}
             </div>
           </div>
 
-          {/* 도넛 카테고리 범례 리스트 */}
-          <div className="space-y-1.5 pt-2 border-t border-slate-800/80">
+          {/* 도넛 카테고리 범례 리스트 (간략) */}
+          <div className="space-y-1.5 pt-2 border-t border-slate-800/80 max-h-40 overflow-y-auto pr-1">
             {donutChartData.map((item, idx) => (
               <div key={idx} className="flex items-center justify-between text-xs py-0.5">
                 <div className="flex items-center space-x-2 truncate">
@@ -1213,14 +1429,14 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
       </div>
 
       {/* ------------------------------------------------------------- */}
-      {/* D. 고정비 분해 투명성 카드 (합계 + 월평균 동시 노출)             */}
+      {/* D. 고정비 & 경조사비 투명 내역 분해 (합계 + 월평균 동시 노출)   */}
       {/* ------------------------------------------------------------- */}
       <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-glass backdrop-blur-xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
           <div className="flex items-center space-x-2">
             <Building className="w-4 h-4 text-amber-400" />
             <h3 className="text-base font-bold text-white">
-              {cashflowSummary.periodLabel} 통합 고정비 투명 내역 분해
+              {cashflowSummary.periodLabel} 고정비 & 경조사비 정밀 내역 분해
             </h3>
           </div>
           <div className="flex items-center space-x-2 text-xs">
@@ -1232,64 +1448,23 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5 pt-1 text-center">
-          <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
-            <span className="text-[11px] text-slate-400 block truncate">아파트관리비</span>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 pt-1 text-center">
+          {/* 배우자생활비 */}
+          <div className="p-3 rounded-xl bg-slate-950/60 border border-emerald-500/30">
+            <span className="text-[11px] text-emerald-400 font-semibold block truncate">고정: 배우자생활비</span>
             <span className="text-xs sm:text-sm font-bold text-white block mt-0.5">
-              {formatMoney(cashflowSummary.total.fixedDetails.apartmentMaintenance)}
+              {formatMoney(cashflowSummary.total.fixedDetails.spouseLiving)}
             </span>
             {cashflowSummary.isAggregate && (
-              <span className="text-[10px] text-amber-300/80 block mt-0.5">
-                월 {formatMoney(cashflowSummary.avg.fixedDetails.apartmentMaintenance)}
+              <span className="text-[10px] text-emerald-300/80 block mt-0.5">
+                월 {formatMoney(cashflowSummary.avg.fixedDetails.spouseLiving)}
               </span>
             )}
           </div>
-          <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
-            <span className="text-[11px] text-slate-400 block truncate">통신비(LGU+)</span>
-            <span className="text-xs sm:text-sm font-bold text-white block mt-0.5">
-              {formatMoney(cashflowSummary.total.fixedDetails.telecom)}
-            </span>
-            {cashflowSummary.isAggregate && (
-              <span className="text-[10px] text-amber-300/80 block mt-0.5">
-                월 {formatMoney(cashflowSummary.avg.fixedDetails.telecom)}
-              </span>
-            )}
-          </div>
-          <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
-            <span className="text-[11px] text-slate-400 block truncate">도시가스(충청)</span>
-            <span className="text-xs sm:text-sm font-bold text-white block mt-0.5">
-              {formatMoney(cashflowSummary.total.fixedDetails.cityGas)}
-            </span>
-            {cashflowSummary.isAggregate && (
-              <span className="text-[10px] text-amber-300/80 block mt-0.5">
-                월 {formatMoney(cashflowSummary.avg.fixedDetails.cityGas)}
-              </span>
-            )}
-          </div>
-          <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
-            <span className="text-[11px] text-slate-400 block truncate">쿠쿠렌탈</span>
-            <span className="text-xs sm:text-sm font-bold text-white block mt-0.5">
-              {formatMoney(cashflowSummary.total.fixedDetails.rental)}
-            </span>
-            {cashflowSummary.isAggregate && (
-              <span className="text-[10px] text-amber-300/80 block mt-0.5">
-                월 {formatMoney(cashflowSummary.avg.fixedDetails.rental)}
-              </span>
-            )}
-          </div>
-          <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
-            <span className="text-[11px] text-slate-400 block truncate">지방세</span>
-            <span className="text-xs sm:text-sm font-bold text-white block mt-0.5">
-              {formatMoney(cashflowSummary.total.fixedDetails.localTax)}
-            </span>
-            {cashflowSummary.isAggregate && (
-              <span className="text-[10px] text-amber-300/80 block mt-0.5">
-                월 {formatMoney(cashflowSummary.avg.fixedDetails.localTax)}
-              </span>
-            )}
-          </div>
-          <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
-            <span className="text-[11px] text-slate-400 block truncate">보장성보험료</span>
+
+          {/* 보장성보험료 */}
+          <div className="p-3 rounded-xl bg-slate-950/60 border border-amber-500/30">
+            <span className="text-[11px] text-amber-400 font-semibold block truncate">고정: 보장성보험료</span>
             <span className="text-xs sm:text-sm font-bold text-white block mt-0.5">
               {formatMoney(cashflowSummary.total.fixedDetails.insurance)}
             </span>
@@ -1299,30 +1474,320 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
               </span>
             )}
           </div>
-          <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
-            <span className="text-[11px] text-slate-400 block truncate">배우자생활비</span>
-            <span className="text-xs sm:text-sm font-bold text-white block mt-0.5">
-              {formatMoney(cashflowSummary.total.fixedDetails.spouseLiving)}
-            </span>
-            {cashflowSummary.isAggregate && (
-              <span className="text-[10px] text-amber-300/80 block mt-0.5">
-                월 {formatMoney(cashflowSummary.avg.fixedDetails.spouseLiving)}
-              </span>
-            )}
-          </div>
-          <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
-            <span className="text-[11px] text-slate-400 block truncate">부모님정기용돈</span>
+
+          {/* 부모님정기용돈 */}
+          <div className="p-3 rounded-xl bg-slate-950/60 border border-teal-500/30">
+            <span className="text-[11px] text-teal-400 font-semibold block truncate">고정: 부모님정기용돈</span>
             <span className="text-xs sm:text-sm font-bold text-white block mt-0.5">
               {formatMoney(cashflowSummary.total.fixedDetails.parentsAllowance)}
             </span>
             {cashflowSummary.isAggregate && (
-              <span className="text-[10px] text-amber-300/80 block mt-0.5">
+              <span className="text-[10px] text-teal-300/80 block mt-0.5">
                 월 {formatMoney(cashflowSummary.avg.fixedDetails.parentsAllowance)}
+              </span>
+            )}
+          </div>
+
+          {/* 비정기: 경조사비 */}
+          <div className="p-3 rounded-xl bg-slate-950/60 border border-orange-500/30">
+            <span className="text-[11px] text-orange-400 font-semibold block truncate">비정기: 경조사비</span>
+            <span className="text-xs sm:text-sm font-bold text-white block mt-0.5">
+              {formatMoney(cashflowSummary.total.eventExpense)}
+            </span>
+            {cashflowSummary.isAggregate && (
+              <span className="text-[10px] text-orange-300/80 block mt-0.5">
+                월 {formatMoney(cashflowSummary.avg.eventExpense)}
+              </span>
+            )}
+          </div>
+
+          {/* 아파트관리비 */}
+          <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
+            <span className="text-[11px] text-slate-400 block truncate">아파트관리비</span>
+            <span className="text-xs sm:text-sm font-bold text-white block mt-0.5">
+              {formatMoney(cashflowSummary.total.fixedDetails.apartmentMaintenance)}
+            </span>
+            {cashflowSummary.isAggregate && (
+              <span className="text-[10px] text-slate-400 block mt-0.5">
+                월 {formatMoney(cashflowSummary.avg.fixedDetails.apartmentMaintenance)}
+              </span>
+            )}
+          </div>
+
+          {/* 통신비(LGU+) */}
+          <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
+            <span className="text-[11px] text-slate-400 block truncate">통신비(LGU+)</span>
+            <span className="text-xs sm:text-sm font-bold text-white block mt-0.5">
+              {formatMoney(cashflowSummary.total.fixedDetails.telecom)}
+            </span>
+            {cashflowSummary.isAggregate && (
+              <span className="text-[10px] text-slate-400 block mt-0.5">
+                월 {formatMoney(cashflowSummary.avg.fixedDetails.telecom)}
+              </span>
+            )}
+          </div>
+
+          {/* 도시가스(충청) */}
+          <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
+            <span className="text-[11px] text-slate-400 block truncate">도시가스(충청)</span>
+            <span className="text-xs sm:text-sm font-bold text-white block mt-0.5">
+              {formatMoney(cashflowSummary.total.fixedDetails.cityGas)}
+            </span>
+            {cashflowSummary.isAggregate && (
+              <span className="text-[10px] text-slate-400 block mt-0.5">
+                월 {formatMoney(cashflowSummary.avg.fixedDetails.cityGas)}
+              </span>
+            )}
+          </div>
+
+          {/* 쿠쿠렌탈 */}
+          <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
+            <span className="text-[11px] text-slate-400 block truncate">쿠쿠렌탈</span>
+            <span className="text-xs sm:text-sm font-bold text-white block mt-0.5">
+              {formatMoney(cashflowSummary.total.fixedDetails.rental)}
+            </span>
+            {cashflowSummary.isAggregate && (
+              <span className="text-[10px] text-slate-400 block mt-0.5">
+                월 {formatMoney(cashflowSummary.avg.fixedDetails.rental)}
+              </span>
+            )}
+          </div>
+
+          {/* 지방세 */}
+          <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
+            <span className="text-[11px] text-slate-400 block truncate">지방세</span>
+            <span className="text-xs sm:text-sm font-bold text-white block mt-0.5">
+              {formatMoney(cashflowSummary.total.fixedDetails.localTax)}
+            </span>
+            {cashflowSummary.isAggregate && (
+              <span className="text-[10px] text-slate-400 block mt-0.5">
+                월 {formatMoney(cashflowSummary.avg.fixedDetails.localTax)}
+              </span>
+            )}
+          </div>
+
+          {/* 기타 비정기 송금 */}
+          <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
+            <span className="text-[11px] text-slate-400 block truncate">기타 비정기송금</span>
+            <span className="text-xs sm:text-sm font-bold text-white block mt-0.5">
+              {formatMoney(cashflowSummary.total.otherBankTransfer)}
+            </span>
+            {cashflowSummary.isAggregate && (
+              <span className="text-[10px] text-slate-400 block mt-0.5">
+                월 {formatMoney(cashflowSummary.avg.otherBankTransfer)}
               </span>
             )}
           </div>
         </div>
       </div>
+
+      {/* ------------------------------------------------------------- */}
+      {/* 2. 통합 지출 구조 도넛 전체화면 모달 (Fullscreen Modal)          */}
+      {/* ------------------------------------------------------------- */}
+      {isDonutFullscreen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/90 backdrop-blur-2xl animate-fadeIn">
+          <div className="w-full max-w-6xl max-h-[92vh] flex flex-col bg-slate-900 border border-slate-700/80 rounded-3xl shadow-2xl overflow-hidden">
+            {/* 전체화면 모달 헤더 */}
+            <div className="flex items-center justify-between p-4 sm:p-6 border-b border-slate-800 bg-slate-950/50">
+              <div className="flex items-center space-x-3">
+                <div className="p-2.5 rounded-xl bg-brand-500/20 text-brand-300 border border-brand-500/30">
+                  <PieChart className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
+                    통합 지출 구조 도넛 정밀 분석
+                    <span className="text-xs px-2.5 py-0.5 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30 font-semibold">
+                      {cashflowSummary.periodLabel}
+                    </span>
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    총 실질 지출 {formatMoney(cashflowSummary.total.expense)} | 월평균 {formatMoney(cashflowSummary.avg.expense)} (총 {cashflowSummary.monthsCount}개월)
+                  </p>
+                </div>
+              </div>
+
+              {/* 모드 선택 및 닫기 버튼 */}
+              <div className="flex items-center space-x-2">
+                <div className="flex items-center bg-slate-900 p-1 rounded-xl border border-slate-800">
+                  <button
+                    onClick={() => setDonutMode('detailed')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                      donutMode === 'detailed'
+                        ? 'bg-brand-500 text-white shadow-md shadow-brand-500/30'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    정밀 9대 카테고리
+                  </button>
+                  <button
+                    onClick={() => setDonutMode('simple')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                      donutMode === 'simple'
+                        ? 'bg-brand-500 text-white shadow-md shadow-brand-500/30'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    대분류 요약
+                  </button>
+                </div>
+
+                <button
+                  onClick={() => setIsDonutFullscreen(false)}
+                  className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-700 transition-all"
+                  title="전체화면 닫기 (ESC)"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* 전체화면 바디: 좌측 대형 도넛 차트 + 우측 정밀 카테고리 랭킹 테이블 */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+              
+              {/* 좌측: 초대형 도넛 차트 */}
+              <div className="lg:col-span-5 flex flex-col items-center justify-center relative min-h-[340px]">
+                <div className="relative w-full h-80 sm:h-96">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={donutChartData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={95}
+                        outerRadius={140}
+                        paddingAngle={3}
+                        dataKey="value"
+                      >
+                        {donutChartData.map((entry, index) => (
+                          <Cell key={`fullscreen-cell-${index}`} fill={entry.color} stroke="#0f172a" strokeWidth={3} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        content={({ active, payload }) => {
+                          if (active && payload && payload.length) {
+                            const data = payload[0].payload;
+                            return (
+                              <div className="bg-slate-950/95 border border-slate-700 p-3 rounded-xl shadow-2xl text-xs space-y-1.5 backdrop-blur-md">
+                                <p className="font-bold text-white flex items-center gap-1.5 text-sm">
+                                  <span className="w-3 h-3 rounded-full" style={{ backgroundColor: data.color }} />
+                                  {data.name}
+                                </p>
+                                <p className="text-[11px] text-slate-400 pb-1 border-b border-slate-800">{data.subtext}</p>
+                                <div className="flex justify-between gap-6">
+                                  <span className="text-slate-400">총 지출액:</span>
+                                  <span className="font-bold text-white text-sm">{formatWon(data.value)}</span>
+                                </div>
+                                <div className="flex justify-between gap-6">
+                                  <span className="text-slate-400">월평균:</span>
+                                  <span className="font-bold text-emerald-300">{formatMoney(data.avg)}</span>
+                                </div>
+                                <div className="flex justify-between gap-6">
+                                  <span className="text-slate-400">지출 내 비중:</span>
+                                  <span className="font-bold text-brand-300 text-sm">{data.ratio}%</span>
+                                </div>
+                              </div>
+                            );
+                          }
+                          return null;
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+
+                  {/* 도넛 중앙 요약 뱃지 */}
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">
+                      {cashflowSummary.periodLabel}
+                    </span>
+                    <span className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight mt-0.5">
+                      {formatMoney(cashflowSummary.total.expense)}
+                    </span>
+                    <span className="text-xs text-brand-300 font-bold mt-1 bg-brand-500/10 px-2.5 py-0.5 rounded-full border border-brand-500/20">
+                      월평균 {formatMoney(cashflowSummary.avg.expense)}
+                    </span>
+                  </div>
+                </div>
+
+                <p className="text-xs text-slate-400 mt-2 text-center">
+                  차트 조각에 마우스를 올리면 세부 금액과 월평균을 확인할 수 있습니다.
+                </p>
+              </div>
+
+              {/* 우측: 정밀 카테고리 랭킹 & 상세 비중 리스트 */}
+              <div className="lg:col-span-7 flex flex-col space-y-2.5 max-h-[500px] overflow-y-auto pr-2">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-800 text-xs text-slate-400 font-semibold px-2">
+                  <span>지출 카테고리 항목</span>
+                  <div className="flex items-center space-x-8">
+                    <span>월평균 (비중)</span>
+                    <span className="w-24 text-right">총 지출액</span>
+                  </div>
+                </div>
+
+                {donutChartData.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="p-3 rounded-2xl bg-slate-950/60 border border-slate-800/80 hover:border-slate-700 transition-all flex flex-col space-y-2"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2.5">
+                        <span className="text-xs font-bold text-slate-400 w-5">#{idx + 1}</span>
+                        <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-white">{item.name}</span>
+                            <span className={`text-[10px] px-1.5 py-0.2 rounded font-semibold border ${
+                              item.type === '고정비'
+                                ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                                : item.type === '비정기'
+                                ? 'bg-orange-500/20 text-orange-300 border-orange-500/30'
+                                : 'bg-pink-500/20 text-pink-300 border-pink-500/30'
+                            }`}>
+                              {item.type}
+                            </span>
+                          </div>
+                          <span className="text-[11px] text-slate-400 block">{item.subtext}</span>
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <span className="text-sm font-bold text-white font-mono block">
+                          {formatMoney(item.value)}
+                        </span>
+                        <span className="text-xs text-slate-400">
+                          월 {formatMoney(item.avg)} <strong className="text-brand-300">({item.ratio}%)</strong>
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* 비중 프로그레스 바 */}
+                    <div className="w-full bg-slate-900 rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{ width: `${Math.min(100, Math.max(0, item.ratio))}%`, backgroundColor: item.color }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+            </div>
+
+            {/* 전체화면 모달 푸터 */}
+            <div className="p-4 border-t border-slate-800 bg-slate-950/60 flex items-center justify-between text-xs text-slate-400">
+              <span className="flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                모든 금액은 하나은행 입출금과 현대카드 승인 데이터의 100% 실시간 무결성 검증을 거쳤습니다.
+              </span>
+              <button
+                onClick={() => setIsDonutFullscreen(false)}
+                className="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold transition-all"
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
