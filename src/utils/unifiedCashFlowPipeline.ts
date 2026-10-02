@@ -324,23 +324,34 @@ export function calculateUnifiedCashFlow(
 }
 
 /**
- * 특정 월의 자녀 교육비 상세 드릴다운 거래 내역 추출
+ * 기간(특정 월, 최근 1년, 전체)에 따른 자녀 교육비 상세 드릴다운 거래 내역 추출
  * (청주페이 충전 건 + 현대카드 학원 결제 건)
  */
 export function getEducationDetailTransactions(
-  selectedMonth: string,
+  selectedPeriod: string,
   bankTransactions: ParsedTx[] = [],
-  cardTransactions: CardStatementTx[] = []
+  cardTransactions: CardStatementTx[] = [],
+  recent12Months: string[] = []
 ): EducationDetailTx[] {
   const safeBank = Array.isArray(bankTransactions) ? bankTransactions : [];
   const safeCard = Array.isArray(cardTransactions) ? cardTransactions : [];
 
   const list: EducationDetailTx[] = [];
 
+  const isIncludedMonth = (ym: string) => {
+    if (!selectedPeriod || selectedPeriod === 'ALL') return true;
+    if (selectedPeriod === '1YEAR') {
+      if (recent12Months.length > 0) return recent12Months.includes(ym);
+      return true;
+    }
+    return ym === selectedPeriod;
+  };
+
   // 은행 청주페이 거래 추출
   safeBank.forEach(tx => {
     if (!tx || !tx.txDatetime) return;
-    if (selectedMonth && !tx.txDatetime.startsWith(selectedMonth)) return;
+    const ym = tx.txDatetime.substring(0, 7);
+    if (!isIncludedMonth(ym)) return;
     if (isBankCheongjuPay(tx.desc) && (Number(tx.outAmt) || 0) > 0) {
       list.push({
         id: tx.id || `edu_bank_${Math.random()}`,
@@ -357,7 +368,7 @@ export function getEducationDetailTransactions(
   safeCard.forEach(tx => {
     if (!tx) return;
     const m = tx.statementMonth || (tx.txDate ? tx.txDate.substring(0, 7) : '');
-    if (selectedMonth && m !== selectedMonth) return;
+    if (!isIncludedMonth(m)) return;
     if (isCardAcademyExpense(tx.merchant, tx.category) && (Number(tx.amount) || 0) > 0) {
       list.push({
         id: tx.id || `edu_card_${Math.random()}`,

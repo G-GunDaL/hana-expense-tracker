@@ -13,8 +13,6 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
-  LineChart,
-  Line,
   PieChart,
   Pie,
   Cell,
@@ -25,7 +23,8 @@ import {
   ReferenceLine,
   CartesianGrid,
   Area,
-  ComposedChart
+  ComposedChart,
+  Line
 } from 'recharts';
 import {
   Wallet,
@@ -40,13 +39,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Sparkles,
-  AlertTriangle,
-  ArrowRight,
-  Info,
-  Calendar,
   CheckCircle2,
   Receipt,
-  FileSpreadsheet
+  Calendar,
+  BarChart3
 } from 'lucide-react';
 
 interface UnifiedCashFlowViewProps {
@@ -75,7 +71,7 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
   const safeBank: ParsedTx[] = Array.isArray(bankTransactions) ? bankTransactions : [];
   const safeCard: CardStatementTx[] = Array.isArray(cardTransactions) ? cardTransactions : [];
 
-  // 통합 현금흐름 데이터 연산
+  // 통합 현금흐름 월별 데이터 연산
   const unifiedData: UnifiedMonthlyData[] = useMemo(() => {
     try {
       return calculateUnifiedCashFlow(safeBank, safeCard);
@@ -90,65 +86,216 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
     return unifiedData.map(d => d.yearMonth).reverse();
   }, [unifiedData]);
 
-  // 선택된 연월 상태 (기본값: 가장 최신 월)
-  const [selectedMonth, setSelectedMonth] = useState<string>(() => {
-    if (unifiedData.length > 0) {
-      return unifiedData[unifiedData.length - 1].yearMonth;
-    }
-    return '2026-09';
-  });
+  // 기간 선택 상태 ('1YEAR' | 'ALL' | 'YYYY-MM')
+  // 기본값: '1YEAR' (최근 1년 누적 및 월평균이 즉시 노출)
+  const [selectedPeriod, setSelectedPeriod] = useState<string>('1YEAR');
 
-  // 선택된 월 데이터 (또는 fallback)
-  const currentMonthData: UnifiedMonthlyData = useMemo(() => {
-    const found = unifiedData.find(d => d.yearMonth === selectedMonth);
-    if (found) return found;
-    if (unifiedData.length > 0) return unifiedData[unifiedData.length - 1];
-    return {
-      yearMonth: selectedMonth || '2026-09',
-      totalIncome: 0,
-      salaryIncome: 0,
-      otherIncome: 0,
-      totalFixed: 0,
-      bankFixed: 0,
-      cardFixed: 0,
-      fixedDetails: {
-        apartmentMaintenance: 0,
-        telecom: 0,
-        cityGas: 0,
-        rental: 0,
-        localTax: 0,
-        insurance: 0,
-        spouseLiving: 0,
-        parentsAllowance: 0,
-        otherFixed: 0
-      },
-      totalVariable: 0,
-      cardPureVariable: 0,
-      totalEduExpense: 0,
-      eduCheongjuPay: 0,
-      eduCardAcademy: 0,
-      bankOtherExpense: 0,
-      donutCategories: {
-        fixed: 0,
-        education: 0,
-        onlineShopping: 0,
-        foodDining: 0,
-        transportVehicle: 0
-      },
-      netSurplus: 0,
-      totalExpense: 0,
-      savingsRate: 0,
-      isDeficit: false,
-      bankTxCount: 0,
-      cardTxCount: 0,
-      excludedCardTransferAmt: 0
+  // 금액 포맷터 헬퍼 (억/만 원 단위 직관 포맷)
+  const formatMoney = (amount: number = 0): string => {
+    const val = Math.round(Number(amount) || 0);
+    const absVal = Math.abs(val);
+    const sign = val < 0 ? '-' : '';
+    if (absVal >= 100000000) {
+      const eok = Math.floor(absVal / 100000000);
+      const remainderMan = Math.round((absVal % 100000000) / 10000);
+      if (remainderMan === 0) return `${sign}${eok}억 원`;
+      return `${sign}${eok}억 ${remainderMan.toLocaleString()}만 원`;
+    }
+    const manwon = Math.round(val / 10000);
+    return `${manwon.toLocaleString()}만 원`;
+  };
+
+  const formatWon = (amount: number = 0) => {
+    return `${(Number(amount) || 0).toLocaleString()}원`;
+  };
+
+  // -------------------------------------------------------------
+  // 집계 및 월평균 계산 로직 (useMemo)
+  // 유효 개월 수(Active Months Count)를 기반으로 정확한 월평균 산출
+  // -------------------------------------------------------------
+  const cashflowSummary = useMemo(() => {
+    let targetMonths: UnifiedMonthlyData[] = [];
+    let periodLabel = '';
+    let isAggregate = false;
+
+    if (selectedPeriod === 'ALL') {
+      targetMonths = unifiedData;
+      periodLabel = `전체 기간 누적 (${targetMonths.length}개월)`;
+      isAggregate = true;
+    } else if (selectedPeriod === '1YEAR') {
+      targetMonths = unifiedData.slice(-12);
+      periodLabel = `최근 1년치 누적 (${targetMonths.length}개월)`;
+      isAggregate = true;
+    } else {
+      const found = unifiedData.find(d => d.yearMonth === selectedPeriod);
+      targetMonths = found ? [found] : (unifiedData.length > 0 ? [unifiedData[unifiedData.length - 1]] : []);
+      periodLabel = `${selectedPeriod.replace('-', '년 ')}월`;
+      isAggregate = false;
+    }
+
+    // 유효 개월 수 (0으로 나누기 원천 방지)
+    const uniqueMonths = new Set(targetMonths.map(d => d.yearMonth).filter(Boolean));
+    const monthsCount = Math.max(uniqueMonths.size, 1);
+
+    // 1. 총합 계산
+    let totalIncome = 0;
+    let salaryIncome = 0;
+    let otherIncome = 0;
+    let totalFixed = 0;
+    let bankFixed = 0;
+    let cardFixed = 0;
+    let totalVariable = 0;
+    let cardPureVariable = 0;
+    let totalEducation = 0;
+    let eduCheongjuPay = 0;
+    let eduCardAcademy = 0;
+    let bankOtherExpense = 0;
+    let excludedCardTransferAmt = 0;
+    let bankTxCount = 0;
+    let cardTxCount = 0;
+
+    const fixedDetails = {
+      apartmentMaintenance: 0,
+      telecom: 0,
+      cityGas: 0,
+      rental: 0,
+      localTax: 0,
+      insurance: 0,
+      spouseLiving: 0,
+      parentsAllowance: 0,
+      otherFixed: 0
     };
-  }, [unifiedData, selectedMonth]);
+
+    const donutCategories = {
+      fixed: 0,
+      education: 0,
+      onlineShopping: 0,
+      foodDining: 0,
+      transportVehicle: 0
+    };
+
+    targetMonths.forEach(m => {
+      totalIncome += Number(m.totalIncome) || 0;
+      salaryIncome += Number(m.salaryIncome) || 0;
+      otherIncome += Number(m.otherIncome) || 0;
+      totalFixed += Number(m.totalFixed) || 0;
+      bankFixed += Number(m.bankFixed) || 0;
+      cardFixed += Number(m.cardFixed) || 0;
+      totalVariable += Number(m.totalVariable) || 0;
+      cardPureVariable += Number(m.cardPureVariable) || 0;
+      totalEducation += Number(m.totalEduExpense) || 0;
+      eduCheongjuPay += Number(m.eduCheongjuPay) || 0;
+      eduCardAcademy += Number(m.eduCardAcademy) || 0;
+      bankOtherExpense += Number(m.bankOtherExpense) || 0;
+      excludedCardTransferAmt += Number(m.excludedCardTransferAmt) || 0;
+      bankTxCount += Number(m.bankTxCount) || 0;
+      cardTxCount += Number(m.cardTxCount) || 0;
+
+      fixedDetails.apartmentMaintenance += Number(m.fixedDetails.apartmentMaintenance) || 0;
+      fixedDetails.telecom += Number(m.fixedDetails.telecom) || 0;
+      fixedDetails.cityGas += Number(m.fixedDetails.cityGas) || 0;
+      fixedDetails.rental += Number(m.fixedDetails.rental) || 0;
+      fixedDetails.localTax += Number(m.fixedDetails.localTax) || 0;
+      fixedDetails.insurance += Number(m.fixedDetails.insurance) || 0;
+      fixedDetails.spouseLiving += Number(m.fixedDetails.spouseLiving) || 0;
+      fixedDetails.parentsAllowance += Number(m.fixedDetails.parentsAllowance) || 0;
+      fixedDetails.otherFixed += Number(m.fixedDetails.otherFixed) || 0;
+
+      donutCategories.onlineShopping += Number(m.donutCategories.onlineShopping) || 0;
+      donutCategories.foodDining += Number(m.donutCategories.foodDining) || 0;
+      donutCategories.transportVehicle += Number(m.donutCategories.transportVehicle) || 0;
+    });
+
+    donutCategories.fixed = totalFixed;
+    donutCategories.education = totalEducation;
+
+    const totalExpense = totalFixed + totalVariable;
+    const totalSurplus = totalIncome - totalExpense;
+    const savingsRate = totalIncome > 0 ? Math.round((totalSurplus / totalIncome) * 100) : 0;
+    const isDeficit = totalSurplus < 0;
+
+    // 2. 월평균 계산 (개별 월 선택 시에는 개월수가 1이므로 총합 = 평균)
+    const avgIncome = Math.round(totalIncome / monthsCount);
+    const avgSalary = Math.round(salaryIncome / monthsCount);
+    const avgOtherIncome = Math.round(otherIncome / monthsCount);
+    const avgFixed = Math.round(totalFixed / monthsCount);
+    const avgBankFixed = Math.round(bankFixed / monthsCount);
+    const avgCardFixed = Math.round(cardFixed / monthsCount);
+    const avgVariable = Math.round(totalVariable / monthsCount);
+    const avgCardPureVariable = Math.round(cardPureVariable / monthsCount);
+    const avgEducation = Math.round(totalEducation / monthsCount);
+    const avgCheongjuPay = Math.round(eduCheongjuPay / monthsCount);
+    const avgCardAcademy = Math.round(eduCardAcademy / monthsCount);
+    const avgSurplus = Math.round(totalSurplus / monthsCount);
+    const avgExpense = Math.round(totalExpense / monthsCount);
+
+    const avgFixedDetails = {
+      apartmentMaintenance: Math.round(fixedDetails.apartmentMaintenance / monthsCount),
+      telecom: Math.round(fixedDetails.telecom / monthsCount),
+      cityGas: Math.round(fixedDetails.cityGas / monthsCount),
+      rental: Math.round(fixedDetails.rental / monthsCount),
+      localTax: Math.round(fixedDetails.localTax / monthsCount),
+      insurance: Math.round(fixedDetails.insurance / monthsCount),
+      spouseLiving: Math.round(fixedDetails.spouseLiving / monthsCount),
+      parentsAllowance: Math.round(fixedDetails.parentsAllowance / monthsCount),
+      otherFixed: Math.round(fixedDetails.otherFixed / monthsCount)
+    };
+
+    return {
+      periodLabel,
+      isAggregate,
+      monthsCount,
+      total: {
+        income: totalIncome,
+        salary: salaryIncome,
+        otherIncome,
+        fixed: totalFixed,
+        bankFixed,
+        cardFixed,
+        variable: totalVariable,
+        cardPureVariable,
+        education: totalEducation,
+        cheongjuPay: eduCheongjuPay,
+        cardAcademy: eduCardAcademy,
+        bankOther: bankOtherExpense,
+        surplus: totalSurplus,
+        expense: totalExpense,
+        fixedDetails,
+        donutCategories,
+        excludedCardTransferAmt,
+        bankTxCount,
+        cardTxCount
+      },
+      avg: {
+        income: avgIncome,
+        salary: avgSalary,
+        otherIncome: avgOtherIncome,
+        fixed: avgFixed,
+        bankFixed: avgBankFixed,
+        cardFixed: avgCardFixed,
+        variable: avgVariable,
+        cardPureVariable: avgCardPureVariable,
+        education: avgEducation,
+        cheongjuPay: avgCheongjuPay,
+        cardAcademy: avgCardAcademy,
+        surplus: avgSurplus,
+        expense: avgExpense,
+        fixedDetails: avgFixedDetails
+      },
+      savingsRate,
+      isDeficit
+    };
+  }, [unifiedData, selectedPeriod]);
+
+  // 최근 12개월 연월 목록 (자녀 교육비 드릴다운 필터용)
+  const recent12MonthsList = useMemo(() => {
+    return unifiedData.slice(-12).map(d => d.yearMonth);
+  }, [unifiedData]);
 
   // 자녀 교육비 상세 거래 내역
   const educationDetails: EducationDetailTx[] = useMemo(() => {
-    return getEducationDetailTransactions(selectedMonth, safeBank, safeCard);
-  }, [selectedMonth, safeBank, safeCard]);
+    return getEducationDetailTransactions(selectedPeriod, safeBank, safeCard, recent12MonthsList);
+  }, [selectedPeriod, safeBank, safeCard, recent12MonthsList]);
 
   // 교육비 드릴다운 보기 모드 ('all' | 'cheongju' | 'card')
   const [eduFilter, setEduFilter] = useState<'all' | 'cheongju' | 'card'>('all');
@@ -162,39 +309,38 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
     return educationDetails;
   }, [educationDetails, eduFilter]);
 
-  // 금액 포맷터 헬퍼 (만 원 단위 및 원 단위)
-  const formatManwon = (amount: number = 0) => {
-    const val = Number(amount) || 0;
-    const manwon = Math.round(val / 10000);
-    return `${manwon.toLocaleString()}만 원`;
-  };
+  // 이전/다음 월 네비게이션 (개별 월 모드일 때 동작)
+  const isIndividualMonth = selectedPeriod !== 'ALL' && selectedPeriod !== '1YEAR';
 
-  const formatWon = (amount: number = 0) => {
-    return `${(Number(amount) || 0).toLocaleString()}원`;
-  };
-
-  // 이전/다음 월 네비게이션
   const handlePrevMonth = () => {
-    const idx = availableMonths.indexOf(selectedMonth);
+    if (!isIndividualMonth) {
+      if (availableMonths.length > 0) setSelectedPeriod(availableMonths[0]);
+      return;
+    }
+    const idx = availableMonths.indexOf(selectedPeriod);
     if (idx < availableMonths.length - 1) {
-      setSelectedMonth(availableMonths[idx + 1]);
+      setSelectedPeriod(availableMonths[idx + 1]);
     }
   };
 
   const handleNextMonth = () => {
-    const idx = availableMonths.indexOf(selectedMonth);
+    if (!isIndividualMonth) {
+      if (availableMonths.length > 0) setSelectedPeriod(availableMonths[0]);
+      return;
+    }
+    const idx = availableMonths.indexOf(selectedPeriod);
     if (idx > 0) {
-      setSelectedMonth(availableMonths[idx - 1]);
+      setSelectedPeriod(availableMonths[idx - 1]);
     }
   };
 
   // 1. 수입 배분 워터폴 / 누적 바 차트 데이터
   const waterfallChartData = useMemo(() => {
-    const d = currentMonthData;
-    const income = Number(d.totalIncome) || 0;
-    const fixed = Number(d.totalFixed) || 0;
-    const variable = Number(d.totalVariable) || 0;
-    const surplus = Number(d.netSurplus) || 0;
+    const s = cashflowSummary;
+    const income = s.total.income;
+    const fixed = s.total.fixed;
+    const variable = s.total.variable;
+    const surplus = s.total.surplus;
 
     return [
       {
@@ -212,12 +358,12 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
         잉여현금: surplus > 0 ? surplus : 0
       }
     ];
-  }, [currentMonthData]);
+  }, [cashflowSummary]);
 
   // 2. 통합 지출 구조 도넛 차트 데이터
   const donutChartData = useMemo(() => {
-    const cats = currentMonthData.donutCategories;
-    const totalExp = Number(currentMonthData.totalExpense) || 1;
+    const cats = cashflowSummary.total.donutCategories;
+    const totalExp = Number(cashflowSummary.total.expense) || 1;
 
     const data = [
       {
@@ -251,11 +397,10 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
       ...item,
       ratio: Number(((item.value / totalExp) * 100).toFixed(1))
     }));
-  }, [currentMonthData]);
+  }, [cashflowSummary]);
 
   // 3. 1년치(최근 12개월) 월별 잉여현금 추이 꺾은선 차트 데이터
   const trendChartData = useMemo(() => {
-    // 최근 12개월 슬라이스 (시간 오름차순)
     const recent12 = unifiedData.slice(-12);
     return recent12.map(d => ({
       month: d.yearMonth.substring(2).replace('-', '년 ') + '월',
@@ -287,9 +432,9 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
   return (
     <div className="w-full space-y-6 animate-fadeIn">
       {/* ------------------------------------------------------------- */}
-      {/* 최상단: 대시보드 타이틀 & 월 선택 컨트롤러                     */}
+      {/* 최상단: 대시보드 타이틀 & 기간 선택기 (Period Selector) 확장    */}
       {/* ------------------------------------------------------------- */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/70 border border-slate-800 rounded-2xl p-4 sm:p-5 backdrop-blur-xl shadow-glass">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-slate-900/70 border border-slate-800 rounded-2xl p-4 sm:p-5 backdrop-blur-xl shadow-glass">
         <div>
           <div className="flex items-center space-x-2.5">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-brand-400 p-[1px] flex items-center justify-center shadow-md shadow-brand-500/20">
@@ -301,7 +446,7 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
               <h2 className="text-lg sm:text-xl font-bold text-white flex items-center gap-2">
                 통합 현금흐름 (All-in-One)
                 <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30">
-                  방식 A 파이프라인
+                  {cashflowSummary.periodLabel}
                 </span>
               </h2>
               <p className="text-xs text-slate-400">
@@ -311,37 +456,73 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
           </div>
         </div>
 
-        {/* 월 선택 인터랙티브 컨트롤러 */}
-        <div className="flex items-center space-x-2 bg-slate-950/80 border border-slate-800 p-1.5 rounded-xl self-start sm:self-auto">
+        {/* 기간 선택기: 최근 1년 / 전체 기간 / 개별 청구월 선택 */}
+        <div className="flex flex-wrap items-center gap-2 self-start lg:self-auto">
+          {/* 1. 최근 1년 (최근 12개월) 버튼 */}
           <button
-            onClick={handlePrevMonth}
-            disabled={availableMonths.indexOf(selectedMonth) >= availableMonths.length - 1}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition-all"
-            title="이전 달"
+            onClick={() => setSelectedPeriod('1YEAR')}
+            className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
+              selectedPeriod === '1YEAR'
+                ? 'bg-brand-500 text-white shadow-md shadow-brand-500/25 ring-1 ring-brand-400'
+                : 'bg-slate-950/80 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800/60'
+            }`}
           >
-            <ChevronLeft className="w-4 h-4" />
+            <Calendar className="w-3.5 h-3.5" />
+            <span>최근 1년 (12개월)</span>
           </button>
 
-          <select
-            value={selectedMonth}
-            onChange={e => setSelectedMonth(e.target.value)}
-            className="bg-transparent text-white text-xs sm:text-sm font-bold px-2 py-1 focus:outline-none cursor-pointer"
+          {/* 2. 전체 기간 누적 (ALL) 버튼 */}
+          <button
+            onClick={() => setSelectedPeriod('ALL')}
+            className={`px-3 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
+              selectedPeriod === 'ALL'
+                ? 'bg-brand-500 text-white shadow-md shadow-brand-500/25 ring-1 ring-brand-400'
+                : 'bg-slate-950/80 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800/60'
+            }`}
           >
-            {availableMonths.map(ym => (
-              <option key={ym} value={ym} className="bg-slate-900 text-white">
-                {ym.replace('-', '년 ')}월
+            <BarChart3 className="w-3.5 h-3.5" />
+            <span>전체 누적 (ALL)</span>
+          </button>
+
+          {/* 3. 개별 청구월 선택 드롭다운 & 네비게이터 */}
+          <div className="flex items-center space-x-1 bg-slate-950/80 border border-slate-800 p-1 rounded-xl">
+            <button
+              onClick={handlePrevMonth}
+              disabled={!isIndividualMonth || availableMonths.indexOf(selectedPeriod) >= availableMonths.length - 1}
+              className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition-all"
+              title="이전 달"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+
+            <select
+              value={isIndividualMonth ? selectedPeriod : ''}
+              onChange={e => {
+                if (e.target.value) setSelectedPeriod(e.target.value);
+              }}
+              className={`bg-transparent text-xs sm:text-sm font-bold px-2 py-1 focus:outline-none cursor-pointer ${
+                isIndividualMonth ? 'text-brand-300 font-extrabold' : 'text-slate-400 font-normal'
+              }`}
+            >
+              <option value="" disabled className="bg-slate-900 text-slate-500">
+                개별 청구월 선택
               </option>
-            ))}
-          </select>
+              {availableMonths.map(ym => (
+                <option key={ym} value={ym} className="bg-slate-900 text-white">
+                  {ym.replace('-', '년 ')}월
+                </option>
+              ))}
+            </select>
 
-          <button
-            onClick={handleNextMonth}
-            disabled={availableMonths.indexOf(selectedMonth) <= 0}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition-all"
-            title="다음 달"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
+            <button
+              onClick={handleNextMonth}
+              disabled={!isIndividualMonth || availableMonths.indexOf(selectedPeriod) <= 0}
+              className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent transition-all"
+              title="다음 달"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -352,26 +533,26 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
         <div className="flex items-center space-x-2.5 text-slate-300">
           <ShieldCheck className="w-4 h-4 text-brand-400 shrink-0" />
           <span>
-            <strong className="text-white">이중 계산 자동 격리 완벽 적용:</strong> {selectedMonth}월 은행 계좌에서 출금된 현대카드 결제액{' '}
+            <strong className="text-white">이중 계산 자동 격리 완벽 적용:</strong> {cashflowSummary.periodLabel} 동안 은행 계좌에서 출금된 현대카드 결제액 총{' '}
             <strong className="text-brand-300 font-mono">
-              {formatManwon(currentMonthData.excludedCardTransferAmt)}
+              {formatMoney(cashflowSummary.total.excludedCardTransferAmt)}
             </strong>
-            을 지출 합계에서 자동 차감하고, 현대카드 실시간 승인 내역({currentMonthData.cardTxCount}건)으로 100% 대체 집계했습니다.
+            을 지출 합계에서 완전 차감하고, 현대카드 실시간 승인 내역({cashflowSummary.total.cardTxCount.toLocaleString()}건)으로 100% 정밀 대체 집계했습니다.
           </span>
         </div>
         <div className="flex items-center space-x-2 shrink-0">
           <span className="px-2.5 py-1 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-[11px] font-medium flex items-center gap-1">
             <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-            무결성 보증
+            무결성 보증 ({cashflowSummary.monthsCount}개월)
           </span>
         </div>
       </div>
 
       {/* ------------------------------------------------------------- */}
-      {/* A. 상단 4대 현금흐름 핵심 지표 카드 (선택된 월 기준)            */}
+      {/* 4. UI 카드 레이아웃 업데이트 (합계 + 월평균 동시 노출)           */}
       {/* ------------------------------------------------------------- */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* KPI 1: 총수입 */}
+        {/* KPI 1: 총수입 카드 */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-b from-slate-900/90 to-slate-900/40 border border-slate-800 p-5 shadow-glass hover:border-brand-500/40 transition-all duration-300 group">
           <div className="absolute top-0 right-0 w-28 h-28 bg-brand-500/10 rounded-full blur-2xl group-hover:bg-brand-500/20 transition-all"></div>
           <div className="flex items-center justify-between">
@@ -383,26 +564,30 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
             </div>
           </div>
           <div className="mt-3">
+            {/* 메인 금액: 총 합계 */}
             <div className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              {formatManwon(currentMonthData.totalIncome)}
+              {cashflowSummary.isAggregate ? '총 ' : ''}{formatMoney(cashflowSummary.total.income)}
             </div>
-            <div className="mt-2.5 flex flex-wrap gap-1.5 text-[11px]">
-              <span className="px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-slate-300">
-                급여 {formatManwon(currentMonthData.salaryIncome)}
+
+            {/* 보조 뱃지 / 서브텍스트: 월평균 */}
+            <div className="mt-2.5 flex items-center space-x-1.5 text-xs text-brand-300 bg-brand-500/10 border border-brand-500/20 rounded-lg px-2.5 py-1.5 font-medium">
+              <Sparkles className="w-3.5 h-3.5 text-brand-400 shrink-0" />
+              <span>
+                월평균 <strong className="text-white font-bold">{formatMoney(cashflowSummary.avg.income)}</strong>
+                {cashflowSummary.isAggregate && (
+                  <span className="text-slate-400 font-normal"> (총 {cashflowSummary.monthsCount}개월 기준)</span>
+                )}
               </span>
-              {currentMonthData.otherIncome > 0 && (
-                <span className="px-2 py-0.5 rounded-md bg-brand-500/15 border border-brand-500/30 text-brand-300">
-                  기타 {formatManwon(currentMonthData.otherIncome)}
-                </span>
-              )}
             </div>
+
             <p className="mt-2 text-[11px] text-slate-400">
-              {selectedMonth}월 실질 가계 유입액 (자산이동 제외)
+              급여 {formatMoney(cashflowSummary.total.salary)}
+              {cashflowSummary.total.otherIncome > 0 && ` + 기타 ${formatMoney(cashflowSummary.total.otherIncome)}`}
             </p>
           </div>
         </div>
 
-        {/* KPI 2: 고정비 */}
+        {/* KPI 2: 고정비 카드 */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-b from-slate-900/90 to-slate-900/40 border border-slate-800 p-5 shadow-glass hover:border-amber-500/40 transition-all duration-300 group">
           <div className="absolute top-0 right-0 w-28 h-28 bg-amber-500/10 rounded-full blur-2xl group-hover:bg-amber-500/20 transition-all"></div>
           <div className="flex items-center justify-between">
@@ -414,24 +599,26 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
             </div>
           </div>
           <div className="mt-3">
+            {/* 메인 금액: 총 합계 */}
             <div className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              {formatManwon(currentMonthData.totalFixed)}
+              {cashflowSummary.isAggregate ? '총 ' : ''}{formatMoney(cashflowSummary.total.fixed)}
             </div>
-            <div className="mt-2.5 flex flex-wrap gap-1.5 text-[11px]">
-              <span className="px-2 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/30 text-amber-300 font-medium">
-                계좌이체 {formatManwon(currentMonthData.bankFixed)}
-              </span>
-              <span className="px-2 py-0.5 rounded-md bg-blue-500/15 border border-blue-500/30 text-blue-300 font-medium">
-                카드결제 {formatManwon(currentMonthData.cardFixed)}
+
+            {/* 보조 서브텍스트: 월평균 */}
+            <div className="mt-2.5 flex items-center space-x-1.5 text-xs text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-lg px-2.5 py-1.5 font-medium">
+              <Building className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span>
+                월평균 <strong className="text-white font-bold">{formatMoney(cashflowSummary.avg.fixed)}</strong>
               </span>
             </div>
-            <p className="mt-2 text-[11px] text-slate-400">
-              관리비/통신/가스/렌탈/보험/정기이체 합산
+
+            <p className="mt-2 text-[11px] text-slate-400 truncate">
+              관리비, 통신비, 공과금, 렌탈, 보험, 정기이체 등
             </p>
           </div>
         </div>
 
-        {/* KPI 3: 변동생활비 */}
+        {/* KPI 3: 변동생활비 카드 */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-b from-slate-900/90 to-slate-900/40 border border-slate-800 p-5 shadow-glass hover:border-rose-500/40 transition-all duration-300 group">
           <div className="absolute top-0 right-0 w-28 h-28 bg-rose-500/10 rounded-full blur-2xl group-hover:bg-rose-500/20 transition-all"></div>
           <div className="flex items-center justify-between">
@@ -443,61 +630,68 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
             </div>
           </div>
           <div className="mt-3">
+            {/* 메인 금액: 총 합계 */}
             <div className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              {formatManwon(currentMonthData.totalVariable)}
+              {cashflowSummary.isAggregate ? '총 ' : ''}{formatMoney(cashflowSummary.total.variable)}
             </div>
-            <div className="mt-2.5 flex flex-wrap gap-1.5 text-[11px]">
-              <span className="px-2 py-0.5 rounded-md bg-rose-500/15 border border-rose-500/30 text-rose-300 font-medium">
-                카드소비 {formatManwon(currentMonthData.cardPureVariable)}
-              </span>
-              <span className="px-2 py-0.5 rounded-md bg-pink-500/15 border border-pink-500/30 text-pink-300 font-medium">
-                자녀교육비 {formatManwon(currentMonthData.totalEduExpense)}
+
+            {/* 보조 서브텍스트: 월평균 및 자녀 교육비 월평균 */}
+            <div className="mt-2.5 flex items-center space-x-1.5 text-xs text-rose-300 bg-rose-500/10 border border-rose-500/20 rounded-lg px-2.5 py-1.5 font-medium">
+              <CreditCard className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+              <span>
+                월평균 <strong className="text-white font-bold">{formatMoney(cashflowSummary.avg.variable)}</strong>
               </span>
             </div>
-            <p className="mt-2 text-[11px] text-slate-400">
-              쇼핑/외식/마트 + 청주페이 및 카드학원비
+
+            <p className="mt-2 text-[11px] text-pink-300/90 truncate">
+              자녀 교육비 월평균: <strong>{formatMoney(cashflowSummary.avg.education)}</strong>
             </p>
           </div>
         </div>
 
-        {/* KPI 4: 잉여현금 & 저축 가능률 */}
+        {/* KPI 4: 잉여현금 (저축/투자 여력) 카드 */}
         <div className={`relative overflow-hidden rounded-2xl bg-gradient-to-b from-slate-900/90 to-slate-900/40 border p-5 shadow-glass transition-all duration-300 group ${
-          currentMonthData.isDeficit
+          cashflowSummary.isDeficit
             ? 'border-red-500/40 bg-red-950/10 hover:border-red-400'
             : 'border-slate-800 hover:border-emerald-500/40'
         }`}>
           <div className={`absolute top-0 right-0 w-28 h-28 rounded-full blur-2xl transition-all ${
-            currentMonthData.isDeficit ? 'bg-red-500/10' : 'bg-emerald-500/10 group-hover:bg-emerald-500/20'
+            cashflowSummary.isDeficit ? 'bg-red-500/10' : 'bg-emerald-500/10 group-hover:bg-emerald-500/20'
           }`}></div>
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
               4. 잉여현금 (저축/투자 여력)
             </span>
             <div className={`w-9 h-9 rounded-xl border flex items-center justify-center ${
-              currentMonthData.isDeficit
+              cashflowSummary.isDeficit
                 ? 'bg-red-500/15 border-red-500/30 text-red-400'
                 : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
             }`}>
-              {currentMonthData.isDeficit ? <TrendingDown className="w-5 h-5" /> : <PiggyBank className="w-5 h-5" />}
+              {cashflowSummary.isDeficit ? <TrendingDown className="w-5 h-5" /> : <PiggyBank className="w-5 h-5" />}
             </div>
           </div>
           <div className="mt-3">
+            {/* 메인 금액: 총 잉여현금 */}
             <div className={`text-2xl sm:text-3xl font-extrabold tracking-tight ${
-              currentMonthData.isDeficit ? 'text-red-400' : 'text-emerald-400'
+              cashflowSummary.isDeficit ? 'text-red-400' : 'text-emerald-400'
             }`}>
-              {currentMonthData.netSurplus >= 0 ? '+' : ''}{formatManwon(currentMonthData.netSurplus)}
+              {cashflowSummary.isAggregate ? '총 ' : ''}{cashflowSummary.total.surplus >= 0 ? '+' : ''}{formatMoney(cashflowSummary.total.surplus)}
             </div>
-            <div className="mt-2.5 flex items-center space-x-1.5 text-xs">
-              <span className={`font-semibold px-2 py-0.5 rounded-md border ${
-                currentMonthData.isDeficit
-                  ? 'bg-red-500/20 border-red-500/30 text-red-300'
-                  : 'bg-emerald-500/20 border-emerald-500/30 text-emerald-300'
-              }`}>
-                저축 가능률 {currentMonthData.savingsRate}% {currentMonthData.isDeficit ? '(적자 상태)' : '(흑자 기조)'}
+
+            {/* 보조 서브텍스트: 월평균 및 저축성향 */}
+            <div className={`mt-2.5 flex items-center space-x-1.5 text-xs rounded-lg px-2.5 py-1.5 font-medium border ${
+              cashflowSummary.isDeficit
+                ? 'bg-red-500/10 border-red-500/20 text-red-300'
+                : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
+            }`}>
+              <PiggyBank className="w-3.5 h-3.5 shrink-0" />
+              <span>
+                월평균 <strong className="text-white font-bold">{cashflowSummary.avg.surplus >= 0 ? '+' : ''}{formatMoney(cashflowSummary.avg.surplus)}</strong> / 저축성향 <strong className="text-white font-bold">{cashflowSummary.savingsRate}%</strong>
               </span>
             </div>
+
             <p className="mt-2 text-[11px] text-slate-400">
-              수입({formatManwon(currentMonthData.totalIncome)}) - 총지출({formatManwon(currentMonthData.totalExpense)})
+              총수입({formatMoney(cashflowSummary.total.income)}) - 총지출({formatMoney(cashflowSummary.total.expense)})
             </p>
           </div>
         </div>
@@ -514,10 +708,10 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
             <div>
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-brand-400" />
-                {selectedMonth}월 수입-지출 1:1 배분 구조
+                {cashflowSummary.periodLabel} 수입-지출 1:1 배분 구조
               </h3>
               <p className="text-xs text-slate-400">
-                총수입 대비 고정비, 변동생활비, 잉여현금(저축여력)의 100% 매칭 구조
+                총수입 대비 고정비, 변동생활비, 잉여현금(저축여력)의 100% 매칭 구조 ({cashflowSummary.monthsCount}개월 누적 기준)
               </p>
             </div>
             <span className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 border border-slate-700">
@@ -533,7 +727,11 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
                 <YAxis
                   stroke="#94a3b8"
                   tick={{ fill: '#94a3b8', fontSize: 11 }}
-                  tickFormatter={val => `${Math.round(val / 10000)}만`}
+                  tickFormatter={val => {
+                    const abs = Math.abs(val);
+                    if (abs >= 100000000) return `${(val / 100000000).toFixed(1)}억`;
+                    return `${Math.round(val / 10000)}만`;
+                  }}
                 />
                 <Tooltip
                   content={({ active, payload, label }) => {
@@ -543,15 +741,24 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
                           <p className="font-bold text-white border-b border-slate-800 pb-1">{label}</p>
                           {payload.map((entry, idx) => {
                             if (Number(entry.value) <= 0) return null;
+                            const totalVal = Number(entry.value);
+                            const avgVal = Math.round(totalVal / cashflowSummary.monthsCount);
                             return (
-                              <div key={idx} className="flex items-center justify-between gap-4">
-                                <span className="flex items-center gap-1.5" style={{ color: entry.color }}>
-                                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
-                                  {entry.name}:
-                                </span>
-                                <span className="font-bold text-white">
-                                  {formatWon(Number(entry.value))}
-                                </span>
+                              <div key={idx} className="space-y-0.5">
+                                <div className="flex items-center justify-between gap-4">
+                                  <span className="flex items-center gap-1.5" style={{ color: entry.color }}>
+                                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+                                    {entry.name}:
+                                  </span>
+                                  <span className="font-bold text-white">
+                                    {formatWon(totalVal)}
+                                  </span>
+                                </div>
+                                {cashflowSummary.isAggregate && (
+                                  <div className="text-[10px] text-slate-400 pl-3.5">
+                                    월평균: {formatMoney(avgVal)}
+                                  </div>
+                                )}
                               </div>
                             );
                           })}
@@ -575,29 +782,44 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
             </ResponsiveContainer>
           </div>
 
-          {/* 하단 요약 풋터 */}
+          {/* 하단 요약 풋터: 총합 및 월평균 동시 노출 */}
           <div className="mt-4 pt-3 border-t border-slate-800/80 grid grid-cols-3 gap-2 text-center text-xs">
             <div className="p-2 rounded-xl bg-slate-950/60 border border-slate-800">
               <span className="text-slate-400 block text-[11px]">고정비 비중</span>
               <span className="font-bold text-amber-400">
-                {currentMonthData.totalIncome > 0
-                  ? ((currentMonthData.totalFixed / currentMonthData.totalIncome) * 100).toFixed(1)
+                {cashflowSummary.total.income > 0
+                  ? ((cashflowSummary.total.fixed / cashflowSummary.total.income) * 100).toFixed(1)
                   : 0}%
               </span>
+              {cashflowSummary.isAggregate && (
+                <span className="text-[10px] text-slate-400 block mt-0.5">
+                  월평균 {formatMoney(cashflowSummary.avg.fixed)}
+                </span>
+              )}
             </div>
             <div className="p-2 rounded-xl bg-slate-950/60 border border-slate-800">
               <span className="text-slate-400 block text-[11px]">변동소비 비중</span>
               <span className="font-bold text-rose-400">
-                {currentMonthData.totalIncome > 0
-                  ? ((currentMonthData.totalVariable / currentMonthData.totalIncome) * 100).toFixed(1)
+                {cashflowSummary.total.income > 0
+                  ? ((cashflowSummary.total.variable / cashflowSummary.total.income) * 100).toFixed(1)
                   : 0}%
               </span>
+              {cashflowSummary.isAggregate && (
+                <span className="text-[10px] text-slate-400 block mt-0.5">
+                  월평균 {formatMoney(cashflowSummary.avg.variable)}
+                </span>
+              )}
             </div>
             <div className="p-2 rounded-xl bg-slate-950/60 border border-slate-800">
               <span className="text-slate-400 block text-[11px]">저축/잉여 비중</span>
               <span className="font-bold text-emerald-400">
-                {currentMonthData.savingsRate}%
+                {cashflowSummary.savingsRate}%
               </span>
+              {cashflowSummary.isAggregate && (
+                <span className="text-[10px] text-slate-400 block mt-0.5">
+                  월평균 {formatMoney(cashflowSummary.avg.surplus)}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -611,7 +833,7 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
                 통합 지출 구조 도넛
               </h3>
               <p className="text-xs text-slate-400">
-                {selectedMonth}월 실질 소비 총 {formatManwon(currentMonthData.totalExpense)}
+                {cashflowSummary.periodLabel} 실질 소비 총 {formatMoney(cashflowSummary.total.expense)}
               </p>
             </div>
           </div>
@@ -636,6 +858,7 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
                   content={({ active, payload }) => {
                     if (active && payload && payload.length) {
                       const data = payload[0].payload;
+                      const avgVal = Math.round(data.value / cashflowSummary.monthsCount);
                       return (
                         <div className="bg-slate-950/95 border border-slate-700 p-2.5 rounded-xl shadow-xl text-xs space-y-1 backdrop-blur-md">
                           <p className="font-bold text-white flex items-center gap-1.5">
@@ -643,9 +866,15 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
                             {data.name}
                           </p>
                           <div className="flex justify-between gap-4">
-                            <span className="text-slate-400">지출액:</span>
+                            <span className="text-slate-400">총 지출액:</span>
                             <span className="font-bold text-white">{formatWon(data.value)}</span>
                           </div>
+                          {cashflowSummary.isAggregate && (
+                            <div className="flex justify-between gap-4">
+                              <span className="text-slate-400">월평균:</span>
+                              <span className="font-bold text-emerald-300">{formatMoney(avgVal)}</span>
+                            </div>
+                          )}
                           <div className="flex justify-between gap-4">
                             <span className="text-slate-400">지출 내 비중:</span>
                             <span className="font-bold text-brand-300">{data.ratio}%</span>
@@ -659,12 +888,19 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
               </PieChart>
             </ResponsiveContainer>
 
-            {/* 도넛 차트 중앙 텍스트 */}
+            {/* 도넛 차트 중앙 텍스트: 총합 & 월평균 */}
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">실질 총지출</span>
-              <span className="text-lg font-extrabold text-white tracking-tight">
-                {formatManwon(currentMonthData.totalExpense)}
+              <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">
+                {cashflowSummary.isAggregate ? '총 실질 지출' : '실질 총지출'}
               </span>
+              <span className="text-lg font-extrabold text-white tracking-tight">
+                {formatMoney(cashflowSummary.total.expense)}
+              </span>
+              {cashflowSummary.isAggregate && (
+                <span className="text-[10px] text-brand-300 font-semibold mt-0.5">
+                  월평균 {formatMoney(cashflowSummary.avg.expense)}
+                </span>
+              )}
             </div>
           </div>
 
@@ -677,7 +913,7 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
                   <span className="text-slate-300 truncate">{item.name}</span>
                 </div>
                 <div className="flex items-center space-x-2 shrink-0">
-                  <span className="font-bold text-white">{formatManwon(item.value)}</span>
+                  <span className="font-bold text-white">{formatMoney(item.value)}</span>
                   <span className="text-slate-400 text-[11px] w-10 text-right">({item.ratio}%)</span>
                 </div>
               </div>
@@ -781,22 +1017,29 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
           <div className="flex items-center space-x-2">
             <span className="text-xs text-slate-400">연간 누적 교육비:</span>
             <span className="text-sm font-extrabold text-pink-400 bg-pink-500/10 border border-pink-500/20 px-2.5 py-1 rounded-lg">
-              {formatManwon(annualTotalEdu)}
+              {formatMoney(annualTotalEdu)}
             </span>
           </div>
         </div>
 
-        {/* 교육비 3대 요약 위젯 카드 */}
+        {/* 교육비 3대 요약 위젯 카드: 총합 + 월평균 동시 노출 */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="p-4 rounded-xl bg-slate-950/70 border border-pink-500/30 flex items-center justify-between">
             <div>
-              <span className="text-[11px] text-slate-400 block">{selectedMonth}월 통합 교육비</span>
-              <span className="text-xl font-bold text-white">{formatManwon(currentMonthData.totalEduExpense)}</span>
+              <span className="text-[11px] text-slate-400 block">{cashflowSummary.periodLabel} 통합 교육비</span>
+              <span className="text-xl font-bold text-white">
+                {cashflowSummary.isAggregate ? '총 ' : ''}{formatMoney(cashflowSummary.total.education)}
+              </span>
+              {cashflowSummary.isAggregate && (
+                <span className="text-xs text-pink-300 block mt-0.5 font-semibold">
+                  월평균 {formatMoney(cashflowSummary.avg.education)}
+                </span>
+              )}
             </div>
             <span className="px-2 py-1 rounded-md bg-pink-500/20 text-pink-300 text-xs font-semibold">
               전체 지출의{' '}
-              {currentMonthData.totalExpense > 0
-                ? ((currentMonthData.totalEduExpense / currentMonthData.totalExpense) * 100).toFixed(1)
+              {cashflowSummary.total.expense > 0
+                ? ((cashflowSummary.total.education / cashflowSummary.total.expense) * 100).toFixed(1)
                 : 0}%
             </span>
           </div>
@@ -804,11 +1047,18 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
           <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 flex items-center justify-between">
             <div>
               <span className="text-[11px] text-slate-400 block">청주페이 충전액 (계좌출금)</span>
-              <span className="text-xl font-bold text-emerald-400">{formatManwon(currentMonthData.eduCheongjuPay)}</span>
+              <span className="text-xl font-bold text-emerald-400">
+                {cashflowSummary.isAggregate ? '총 ' : ''}{formatMoney(cashflowSummary.total.cheongjuPay)}
+              </span>
+              {cashflowSummary.isAggregate && (
+                <span className="text-xs text-emerald-300 block mt-0.5 font-semibold">
+                  월평균 {formatMoney(cashflowSummary.avg.cheongjuPay)}
+                </span>
+              )}
             </div>
             <span className="text-xs text-slate-400 font-mono">
-              {currentMonthData.totalEduExpense > 0
-                ? ((currentMonthData.eduCheongjuPay / currentMonthData.totalEduExpense) * 100).toFixed(0)
+              {cashflowSummary.total.education > 0
+                ? ((cashflowSummary.total.cheongjuPay / cashflowSummary.total.education) * 100).toFixed(0)
                 : 0}%
             </span>
           </div>
@@ -816,11 +1066,18 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
           <div className="p-4 rounded-xl bg-slate-950/70 border border-slate-800 flex items-center justify-between">
             <div>
               <span className="text-[11px] text-slate-400 block">현대카드 학원비 (카드승인)</span>
-              <span className="text-xl font-bold text-blue-400">{formatManwon(currentMonthData.eduCardAcademy)}</span>
+              <span className="text-xl font-bold text-blue-400">
+                {cashflowSummary.isAggregate ? '총 ' : ''}{formatMoney(cashflowSummary.total.cardAcademy)}
+              </span>
+              {cashflowSummary.isAggregate && (
+                <span className="text-xs text-blue-300 block mt-0.5 font-semibold">
+                  월평균 {formatMoney(cashflowSummary.avg.cardAcademy)}
+                </span>
+              )}
             </div>
             <span className="text-xs text-slate-400 font-mono">
-              {currentMonthData.totalEduExpense > 0
-                ? ((currentMonthData.eduCardAcademy / currentMonthData.totalEduExpense) * 100).toFixed(0)
+              {cashflowSummary.total.education > 0
+                ? ((cashflowSummary.total.cardAcademy / cashflowSummary.total.education) * 100).toFixed(0)
                 : 0}%
             </span>
           </div>
@@ -829,7 +1086,7 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
         {/* 12개월 청주페이 vs 카드 학원비 누적 바 차트 */}
         <div className="pt-2">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-300">월별 청주페이 vs 카드 학원비 추이 (12개월)</span>
+            <span className="text-xs font-semibold text-slate-300">월별 청주페이 vs 카드 학원비 추이 (최근 12개월)</span>
             <div className="flex items-center space-x-3 text-xs">
               <span className="flex items-center gap-1.5 text-emerald-400">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
@@ -882,7 +1139,7 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
             <h4 className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
               <Receipt className="w-3.5 h-3.5 text-pink-400" />
-              {selectedMonth}월 자녀 교육비 상세 승인/출금 내역 ({filteredEduDetails.length}건)
+              {cashflowSummary.periodLabel} 자녀 교육비 상세 내역 ({filteredEduDetails.length.toLocaleString()}건)
             </h4>
             <div className="flex items-center space-x-1 bg-slate-950 p-1 rounded-lg border border-slate-800">
               <button
@@ -914,12 +1171,12 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
 
           {filteredEduDetails.length === 0 ? (
             <div className="py-8 text-center text-xs text-slate-500 bg-slate-950/40 rounded-xl border border-slate-800/60">
-              해당 월에 기록된 교육비 내역이 없습니다.
+              해당 기간에 기록된 교육비 내역이 없습니다.
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-950/50">
+            <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-950/50 max-h-96 overflow-y-auto">
               <table className="w-full text-xs text-left">
-                <thead className="bg-slate-900/80 text-slate-400 border-b border-slate-800">
+                <thead className="bg-slate-900/90 text-slate-400 border-b border-slate-800 sticky top-0 backdrop-blur-md">
                   <tr>
                     <th className="py-2.5 px-3 font-medium">거래일자</th>
                     <th className="py-2.5 px-3 font-medium">채널/출처</th>
@@ -956,67 +1213,113 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
       </div>
 
       {/* ------------------------------------------------------------- */}
-      {/* D. 고정비 분해 투명성 카드 (관리비/통신/가스/렌탈/보험 등)        */}
+      {/* D. 고정비 분해 투명성 카드 (합계 + 월평균 동시 노출)             */}
       {/* ------------------------------------------------------------- */}
       <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 shadow-glass backdrop-blur-xl">
-        <div className="flex items-center space-x-2 mb-3">
-          <Building className="w-4 h-4 text-amber-400" />
-          <h3 className="text-base font-bold text-white">
-            {selectedMonth}월 통합 고정비 투명 내역 분해
-          </h3>
-          <span className="text-xs text-amber-400 font-bold ml-auto">
-            합계: {formatManwon(currentMonthData.totalFixed)}
-          </span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+          <div className="flex items-center space-x-2">
+            <Building className="w-4 h-4 text-amber-400" />
+            <h3 className="text-base font-bold text-white">
+              {cashflowSummary.periodLabel} 통합 고정비 투명 내역 분해
+            </h3>
+          </div>
+          <div className="flex items-center space-x-2 text-xs">
+            <span className="text-slate-400">총 고정비:</span>
+            <span className="font-extrabold text-amber-400">{formatMoney(cashflowSummary.total.fixed)}</span>
+            {cashflowSummary.isAggregate && (
+              <span className="text-slate-400 font-medium">(월평균 {formatMoney(cashflowSummary.avg.fixed)})</span>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5 pt-1 text-center">
           <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
             <span className="text-[11px] text-slate-400 block truncate">아파트관리비</span>
-            <span className="text-xs sm:text-sm font-bold text-white">
-              {formatManwon(currentMonthData.fixedDetails.apartmentMaintenance)}
+            <span className="text-xs sm:text-sm font-bold text-white block mt-0.5">
+              {formatMoney(cashflowSummary.total.fixedDetails.apartmentMaintenance)}
             </span>
+            {cashflowSummary.isAggregate && (
+              <span className="text-[10px] text-amber-300/80 block mt-0.5">
+                월 {formatMoney(cashflowSummary.avg.fixedDetails.apartmentMaintenance)}
+              </span>
+            )}
           </div>
           <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
             <span className="text-[11px] text-slate-400 block truncate">통신비(LGU+)</span>
-            <span className="text-xs sm:text-sm font-bold text-white">
-              {formatManwon(currentMonthData.fixedDetails.telecom)}
+            <span className="text-xs sm:text-sm font-bold text-white block mt-0.5">
+              {formatMoney(cashflowSummary.total.fixedDetails.telecom)}
             </span>
+            {cashflowSummary.isAggregate && (
+              <span className="text-[10px] text-amber-300/80 block mt-0.5">
+                월 {formatMoney(cashflowSummary.avg.fixedDetails.telecom)}
+              </span>
+            )}
           </div>
           <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
             <span className="text-[11px] text-slate-400 block truncate">도시가스(충청)</span>
-            <span className="text-xs sm:text-sm font-bold text-white">
-              {formatManwon(currentMonthData.fixedDetails.cityGas)}
+            <span className="text-xs sm:text-sm font-bold text-white block mt-0.5">
+              {formatMoney(cashflowSummary.total.fixedDetails.cityGas)}
             </span>
+            {cashflowSummary.isAggregate && (
+              <span className="text-[10px] text-amber-300/80 block mt-0.5">
+                월 {formatMoney(cashflowSummary.avg.fixedDetails.cityGas)}
+              </span>
+            )}
           </div>
           <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
             <span className="text-[11px] text-slate-400 block truncate">쿠쿠렌탈</span>
-            <span className="text-xs sm:text-sm font-bold text-white">
-              {formatManwon(currentMonthData.fixedDetails.rental)}
+            <span className="text-xs sm:text-sm font-bold text-white block mt-0.5">
+              {formatMoney(cashflowSummary.total.fixedDetails.rental)}
             </span>
+            {cashflowSummary.isAggregate && (
+              <span className="text-[10px] text-amber-300/80 block mt-0.5">
+                월 {formatMoney(cashflowSummary.avg.fixedDetails.rental)}
+              </span>
+            )}
           </div>
           <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
             <span className="text-[11px] text-slate-400 block truncate">지방세</span>
-            <span className="text-xs sm:text-sm font-bold text-white">
-              {formatManwon(currentMonthData.fixedDetails.localTax)}
+            <span className="text-xs sm:text-sm font-bold text-white block mt-0.5">
+              {formatMoney(cashflowSummary.total.fixedDetails.localTax)}
             </span>
+            {cashflowSummary.isAggregate && (
+              <span className="text-[10px] text-amber-300/80 block mt-0.5">
+                월 {formatMoney(cashflowSummary.avg.fixedDetails.localTax)}
+              </span>
+            )}
           </div>
           <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
             <span className="text-[11px] text-slate-400 block truncate">보장성보험료</span>
-            <span className="text-xs sm:text-sm font-bold text-white">
-              {formatManwon(currentMonthData.fixedDetails.insurance)}
+            <span className="text-xs sm:text-sm font-bold text-white block mt-0.5">
+              {formatMoney(cashflowSummary.total.fixedDetails.insurance)}
             </span>
+            {cashflowSummary.isAggregate && (
+              <span className="text-[10px] text-amber-300/80 block mt-0.5">
+                월 {formatMoney(cashflowSummary.avg.fixedDetails.insurance)}
+              </span>
+            )}
           </div>
           <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
             <span className="text-[11px] text-slate-400 block truncate">배우자생활비</span>
-            <span className="text-xs sm:text-sm font-bold text-white">
-              {formatManwon(currentMonthData.fixedDetails.spouseLiving)}
+            <span className="text-xs sm:text-sm font-bold text-white block mt-0.5">
+              {formatMoney(cashflowSummary.total.fixedDetails.spouseLiving)}
             </span>
+            {cashflowSummary.isAggregate && (
+              <span className="text-[10px] text-amber-300/80 block mt-0.5">
+                월 {formatMoney(cashflowSummary.avg.fixedDetails.spouseLiving)}
+              </span>
+            )}
           </div>
           <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800">
             <span className="text-[11px] text-slate-400 block truncate">부모님정기용돈</span>
-            <span className="text-xs sm:text-sm font-bold text-white">
-              {formatManwon(currentMonthData.fixedDetails.parentsAllowance)}
+            <span className="text-xs sm:text-sm font-bold text-white block mt-0.5">
+              {formatMoney(cashflowSummary.total.fixedDetails.parentsAllowance)}
             </span>
+            {cashflowSummary.isAggregate && (
+              <span className="text-[10px] text-amber-300/80 block mt-0.5">
+                월 {formatMoney(cashflowSummary.avg.fixedDetails.parentsAllowance)}
+              </span>
+            )}
           </div>
         </div>
       </div>
