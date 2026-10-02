@@ -42,6 +42,14 @@ export class GlobalErrorBoundary extends Component<Props, State> {
               try {
                 localStorage.clear();
                 sessionStorage.clear();
+                if ('caches' in window) {
+                  caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))));
+                }
+                if ('serviceWorker' in navigator) {
+                  navigator.serviceWorker.getRegistrations().then(regs => {
+                    regs.forEach(r => r.unregister());
+                  });
+                }
               } catch (e) {
                 console.warn('Storage clear error:', e);
               }
