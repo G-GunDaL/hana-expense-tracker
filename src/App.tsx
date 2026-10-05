@@ -60,6 +60,18 @@ export const App: React.FC = () => {
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
+  // 모달 팝업 시 배경 스크롤 잠금 (Scroll Lock)
+  useEffect(() => {
+    if (isUploadOpen || isCardUploadOpen || isSettingsOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isUploadOpen, isCardUploadOpen, isSettingsOpen]);
+
   // Supabase에서 카드 명세서 데이터 로드 (초기 1회)
   useEffect(() => {
     if (isSupabaseConnected) {

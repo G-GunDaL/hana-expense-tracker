@@ -123,15 +123,25 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
   // 도넛 차트 전체화면 모달 상태
   const [isDonutFullscreen, setIsDonutFullscreen] = useState<boolean>(false);
 
-  // ESC 키로 전체화면 모달 닫기
+  // ESC 키로 전체화면 모달 닫기 및 스크롤 잠금
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isDonutFullscreen) {
         setIsDonutFullscreen(false);
       }
     };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    
+    if (isDonutFullscreen) {
+      document.body.style.overflow = 'hidden';
+      window.addEventListener('keydown', handleKeyDown);
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+
+    return () => {
+      document.body.style.overflow = 'unset';
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [isDonutFullscreen]);
 
   // 금액 포맷터 헬퍼 (억/만 원 직관 포맷)
