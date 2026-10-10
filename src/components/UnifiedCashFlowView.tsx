@@ -50,8 +50,12 @@ import {
   Users,
   Shield,
   Filter,
-  ArrowRight
+  ArrowRight,
+  Minus,
+  Equal,
+  ArrowDown
 } from 'lucide-react';
+import { usePrivacy } from '../context/PrivacyContext';
 
 interface UnifiedCashFlowViewProps {
   bankTransactions?: ParsedTx[];
@@ -144,8 +148,11 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
     };
   }, [isDonutFullscreen]);
 
+  const { isPrivate } = usePrivacy();
+
   // 금액 포맷터 헬퍼 (억/만 원 직관 포맷)
   const formatMoney = (amount: number = 0): string => {
+    if (isPrivate) return '****원';
     const val = Math.round(Number(amount) || 0);
     const absVal = Math.abs(val);
     const sign = val < 0 ? '-' : '';
@@ -160,6 +167,7 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
   };
 
   const formatWon = (amount: number = 0) => {
+    if (isPrivate) return '****원';
     return `${(Number(amount) || 0).toLocaleString()}원`;
   };
 
@@ -256,15 +264,17 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
       bankTxCount += Number(m.bankTxCount) || 0;
       cardTxCount += Number(m.cardTxCount) || 0;
 
-      fixedDetails.apartmentMaintenance += Number(m.fixedDetails.apartmentMaintenance) || 0;
-      fixedDetails.telecom += Number(m.fixedDetails.telecom) || 0;
-      fixedDetails.cityGas += Number(m.fixedDetails.cityGas) || 0;
-      fixedDetails.rental += Number(m.fixedDetails.rental) || 0;
-      fixedDetails.localTax += Number(m.fixedDetails.localTax) || 0;
-      fixedDetails.insurance += Number(m.fixedDetails.insurance) || 0;
-      fixedDetails.spouseLiving += Number(m.fixedDetails.spouseLiving) || 0;
-      fixedDetails.parentsAllowance += Number(m.fixedDetails.parentsAllowance) || 0;
-      fixedDetails.otherFixed += Number(m.fixedDetails.otherFixed) || 0;
+      if (m.fixedDetails) {
+        fixedDetails.apartmentMaintenance += Number(m.fixedDetails.apartmentMaintenance) || 0;
+        fixedDetails.telecom += Number(m.fixedDetails.telecom) || 0;
+        fixedDetails.cityGas += Number(m.fixedDetails.cityGas) || 0;
+        fixedDetails.rental += Number(m.fixedDetails.rental) || 0;
+        fixedDetails.localTax += Number(m.fixedDetails.localTax) || 0;
+        fixedDetails.insurance += Number(m.fixedDetails.insurance) || 0;
+        fixedDetails.spouseLiving += Number(m.fixedDetails.spouseLiving) || 0;
+        fixedDetails.parentsAllowance += Number(m.fixedDetails.parentsAllowance) || 0;
+        fixedDetails.otherFixed += Number(m.fixedDetails.otherFixed) || 0;
+      }
 
       if (m.donutCategories?.detailed) {
         donutDetailed.spouseLiving += Number(m.donutCategories.detailed.spouseLiving) || 0;
@@ -788,174 +798,208 @@ export const UnifiedCashFlowView: React.FC<UnifiedCashFlowViewProps> = ({
       </div>
 
       {/* ------------------------------------------------------------- */}
-      {/* 4대 현금흐름 핵심 지표 카드 (합계 + 월평균 동시 노출)           */}
+      {/* 4대 현금흐름 핵심 지표 프로세스 (커넥터 라인 적용)             */}
       {/* ------------------------------------------------------------- */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* KPI 1: 총수입 카드 */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-b from-slate-900/90 to-slate-900/40 border border-slate-800 p-5 shadow-glass hover:border-brand-500/40 transition-all duration-300 group">
-          <div className="absolute top-0 right-0 w-28 h-28 bg-brand-500/10 rounded-full blur-2xl group-hover:bg-brand-500/20 transition-all"></div>
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-              1. 총수입 (순수 입금)
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-brand-500/10 border border-brand-500/30 flex items-center justify-center text-brand-400">
-              <Wallet className="w-5 h-5" />
-            </div>
+      <div className="space-y-3">
+        {/* 데스크탑 프로세스 커넥터 헤더 바 */}
+        <div className="hidden lg:flex items-center justify-between px-6 py-2.5 bg-slate-900/60 border border-slate-800 rounded-xl text-xs text-slate-400 backdrop-blur-md shadow-sm">
+          <span className="flex items-center gap-2 font-bold text-brand-300">
+            <span className="w-5 h-5 rounded-full bg-brand-500/20 border border-brand-500/30 flex items-center justify-center text-[10px] text-brand-400">1</span>
+            총수입 유입
+          </span>
+          <div className="flex items-center gap-1 text-slate-600">
+            <div className="w-12 h-[1px] bg-slate-800"></div>
+            <Minus className="w-3.5 h-3.5 text-amber-500" />
+            <ArrowRight className="w-3.5 h-3.5 text-slate-600" />
           </div>
-          <div className="mt-3">
-            {/* 메인 금액: 총 합계 */}
-            <div className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              {cashflowSummary.isAggregate ? '총 ' : ''}{formatMoney(cashflowSummary.total.income)}
-            </div>
-
-            {/* 보조 뱃지 / 서브텍스트: 월평균 */}
-            <div className="mt-2.5 flex items-center space-x-1.5 text-xs text-brand-300 bg-brand-500/10 border border-brand-500/20 rounded-lg px-2.5 py-1.5 font-medium">
-              <Sparkles className="w-3.5 h-3.5 text-brand-400 shrink-0" />
-              <span>
-                월평균 <strong className="text-white font-bold">{formatMoney(cashflowSummary.avg.income)}</strong>
-                {cashflowSummary.isAggregate && (
-                  <span className="text-slate-400 font-normal"> (총 {cashflowSummary.monthsCount}개월 기준)</span>
-                )}
-              </span>
-            </div>
-
-            <p className="mt-2 text-[11px] text-slate-400">
-              급여 {formatMoney(cashflowSummary.total.salary)}
-              {cashflowSummary.total.otherIncome > 0 && ` + 기타 ${formatMoney(cashflowSummary.total.otherIncome)}`}
-            </p>
+          <span className="flex items-center gap-2 font-bold text-amber-300">
+            <span className="w-5 h-5 rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-[10px] text-amber-400">2</span>
+            고정비 차감
+          </span>
+          <div className="flex items-center gap-1 text-slate-600">
+            <div className="w-12 h-[1px] bg-slate-800"></div>
+            <Minus className="w-3.5 h-3.5 text-rose-500" />
+            <ArrowRight className="w-3.5 h-3.5 text-slate-600" />
           </div>
+          <span className="flex items-center gap-2 font-bold text-rose-300">
+            <span className="w-5 h-5 rounded-full bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-[10px] text-rose-400">3</span>
+            변동생활비 차감
+          </span>
+          <div className="flex items-center gap-1 text-slate-600">
+            <div className="w-12 h-[1px] bg-slate-800"></div>
+            <Equal className="w-3.5 h-3.5 text-emerald-500" />
+            <ArrowRight className="w-3.5 h-3.5 text-slate-600" />
+          </div>
+          <span className="flex items-center gap-2 font-bold text-emerald-300">
+            <span className="w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-[10px] text-emerald-400">4</span>
+            순 잉여현금 창출
+          </span>
         </div>
 
-        {/* KPI 2: 고정비 카드 (배우자생활비, 보험료, 부모님용돈 명시) */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-b from-slate-900/90 to-slate-900/40 border border-slate-800 p-5 shadow-glass hover:border-amber-500/40 transition-all duration-300 group">
-          <div className="absolute top-0 right-0 w-28 h-28 bg-amber-500/10 rounded-full blur-2xl group-hover:bg-amber-500/20 transition-all"></div>
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-              2. 고정비 (통합 필수비용)
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
-              <Building className="w-5 h-5" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* KPI 1: 총수입 카드 */}
+          <div className="relative overflow-hidden rounded-2xl card-glass-interactive p-5 shadow-glass group">
+            <div className="absolute top-0 right-0 w-28 h-28 bg-brand-500/10 rounded-full blur-2xl group-hover:bg-brand-500/20 transition-all duration-500"></div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                1. 총수입 (순수 입금)
+              </span>
+              <div className="w-9 h-9 rounded-xl bg-brand-500/15 border border-brand-500/30 flex items-center justify-center text-brand-400 group-hover:scale-105 transition-transform duration-300">
+                <Wallet className="w-5 h-5" />
+              </div>
+            </div>
+            <div className="mt-3.5">
+              {/* 메인 금액: 총 합계 */}
+              <div className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                {cashflowSummary.isAggregate ? '총 ' : ''}{formatMoney(cashflowSummary.total.income)}
+              </div>
+
+              {/* 보조 뱃지 / 서브텍스트: 월평균 */}
+              <div className="mt-2.5 flex items-center space-x-1.5 text-xs text-brand-300 bg-brand-500/10 border border-brand-500/25 rounded-xl px-2.5 py-1.5 font-medium backdrop-blur-sm">
+                <Sparkles className="w-3.5 h-3.5 text-brand-400 shrink-0" />
+                <span className="truncate">
+                  월평균 <strong className="text-white font-bold">{formatMoney(cashflowSummary.avg.income)}</strong>
+                  {cashflowSummary.isAggregate && (
+                    <span className="text-slate-400 font-normal"> (총 {cashflowSummary.monthsCount}개월 기준)</span>
+                  )}
+                </span>
+              </div>
+
+              <p className="mt-2 text-[11px] text-slate-400 truncate">
+                급여 {formatMoney(cashflowSummary.total.salary)}
+                {cashflowSummary.total.otherIncome > 0 && ` + 기타 ${formatMoney(cashflowSummary.total.otherIncome)}`}
+              </p>
             </div>
           </div>
-          <div className="mt-3">
-            {/* 메인 금액: 총 합계 */}
-            <div className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              {cashflowSummary.isAggregate ? '총 ' : ''}{formatMoney(cashflowSummary.total.fixed)}
-            </div>
 
-            {/* 보조 서브텍스트: 월평균 */}
-            <div className="mt-2.5 flex items-center space-x-1.5 text-xs text-amber-300 bg-amber-500/10 border border-amber-500/20 rounded-lg px-2.5 py-1.5 font-medium">
-              <Building className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <span>
-                월평균 <strong className="text-white font-bold">{formatMoney(cashflowSummary.avg.fixed)}</strong>
+          {/* KPI 2: 고정비 카드 */}
+          <div className="relative overflow-hidden rounded-2xl card-glass-interactive p-5 shadow-glass group hover:border-amber-500/40">
+            <div className="absolute top-0 right-0 w-28 h-28 bg-amber-500/10 rounded-full blur-2xl group-hover:bg-amber-500/20 transition-all duration-500"></div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                2. 고정비 (통합 필수비용)
               </span>
+              <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 group-hover:scale-105 transition-transform duration-300">
+                <Building className="w-5 h-5" />
+              </div>
             </div>
+            <div className="mt-3.5">
+              {/* 메인 금액: 총 합계 */}
+              <div className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                {cashflowSummary.isAggregate ? '총 ' : ''}{formatMoney(cashflowSummary.total.fixed)}
+              </div>
 
-            {/* 세부 항목 배지 */}
-            <div className="mt-2 flex flex-wrap gap-1 text-[10px]">
-              <span className="px-1.5 py-0.5 rounded bg-slate-800 text-emerald-300">
-                배우자 {formatMoney(cashflowSummary.total.fixedDetails.spouseLiving)}
-              </span>
-              <span className="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300">
-                보험 {formatMoney(cashflowSummary.total.fixedDetails.insurance)}
-              </span>
-              <span className="px-1.5 py-0.5 rounded bg-slate-800 text-teal-300">
-                부모님 {formatMoney(cashflowSummary.total.fixedDetails.parentsAllowance)}
-              </span>
+              {/* 보조 서브텍스트: 월평균 */}
+              <div className="mt-2.5 flex items-center space-x-1.5 text-xs text-amber-300 bg-amber-500/10 border border-amber-500/25 rounded-xl px-2.5 py-1.5 font-medium backdrop-blur-sm">
+                <Building className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span className="truncate">
+                  월평균 <strong className="text-white font-bold">{formatMoney(cashflowSummary.avg.fixed)}</strong>
+                </span>
+              </div>
+
+              {/* 세부 항목 배지 */}
+              <div className="mt-2 flex flex-wrap gap-1 text-[10px]">
+                <span className="px-1.5 py-0.5 rounded-md bg-slate-800/80 text-emerald-300 border border-slate-700/60">
+                  배우자 {formatMoney(cashflowSummary.total.fixedDetails.spouseLiving)}
+                </span>
+                <span className="px-1.5 py-0.5 rounded-md bg-slate-800/80 text-amber-300 border border-slate-700/60">
+                  보험 {formatMoney(cashflowSummary.total.fixedDetails.insurance)}
+                </span>
+                <span className="px-1.5 py-0.5 rounded-md bg-slate-800/80 text-teal-300 border border-slate-700/60">
+                  부모님 {formatMoney(cashflowSummary.total.fixedDetails.parentsAllowance)}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* KPI 3: 변동생활비 카드 (카드소비, 자녀교육비, 경조사비 명시) */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-b from-slate-900/90 to-slate-900/40 border border-slate-800 p-5 shadow-glass hover:border-rose-500/40 transition-all duration-300 group">
-          <div className="absolute top-0 right-0 w-28 h-28 bg-rose-500/10 rounded-full blur-2xl group-hover:bg-rose-500/20 transition-all"></div>
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-              3. 변동생활비 (소비+교육+경조사)
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400">
-              <CreditCard className="w-5 h-5" />
+          {/* KPI 3: 변동생활비 카드 */}
+          <div className="relative overflow-hidden rounded-2xl card-glass-interactive p-5 shadow-glass group hover:border-rose-500/40">
+            <div className="absolute top-0 right-0 w-28 h-28 bg-rose-500/10 rounded-full blur-2xl group-hover:bg-rose-500/20 transition-all duration-500"></div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                3. 변동생활비 (소비+교육+경조)
+              </span>
+              <div className="w-9 h-9 rounded-xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400 group-hover:scale-105 transition-transform duration-300">
+                <CreditCard className="w-5 h-5" />
+              </div>
+            </div>
+            <div className="mt-3.5">
+              {/* 메인 금액: 총 합계 */}
+              <div className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                {cashflowSummary.isAggregate ? '총 ' : ''}{formatMoney(cashflowSummary.total.variable)}
+              </div>
+
+              {/* 보조 서브텍스트: 월평균 */}
+              <div className="mt-2.5 flex items-center space-x-1.5 text-xs text-rose-300 bg-rose-500/10 border border-rose-500/25 rounded-xl px-2.5 py-1.5 font-medium backdrop-blur-sm">
+                <CreditCard className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                <span className="truncate">
+                  월평균 <strong className="text-white font-bold">{formatMoney(cashflowSummary.avg.variable)}</strong>
+                </span>
+              </div>
+
+              {/* 세부 항목 배지 */}
+              <div className="mt-2 flex flex-wrap gap-1 text-[10px]">
+                <span className="px-1.5 py-0.5 rounded-md bg-slate-800/80 text-pink-300 border border-slate-700/60">
+                  교육비 {formatMoney(cashflowSummary.total.education)}
+                </span>
+                <span className="px-1.5 py-0.5 rounded-md bg-slate-800/80 text-rose-300 border border-slate-700/60">
+                  쇼핑 {formatMoney(cashflowSummary.total.donutDetailed.onlineShopping)}
+                </span>
+                <span className="px-1.5 py-0.5 rounded-md bg-slate-800/80 text-emerald-300 border border-slate-700/60">
+                  마트 {formatMoney(cashflowSummary.total.donutDetailed.groceryMart)}
+                </span>
+                <span className="px-1.5 py-0.5 rounded-md bg-slate-800/80 text-orange-300 border border-slate-700/60">
+                  경조사 {formatMoney(cashflowSummary.total.eventExpense)}
+                </span>
+              </div>
             </div>
           </div>
-          <div className="mt-3">
-            {/* 메인 금액: 총 합계 */}
-            <div className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              {cashflowSummary.isAggregate ? '총 ' : ''}{formatMoney(cashflowSummary.total.variable)}
-            </div>
 
-            {/* 보조 서브텍스트: 월평균 */}
-            <div className="mt-2.5 flex items-center space-x-1.5 text-xs text-rose-300 bg-rose-500/10 border border-rose-500/20 rounded-lg px-2.5 py-1.5 font-medium">
-              <CreditCard className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-              <span>
-                월평균 <strong className="text-white font-bold">{formatMoney(cashflowSummary.avg.variable)}</strong>
+          {/* KPI 4: 잉여현금 (저축/투자 여력) 카드 */}
+          <div className={`relative overflow-hidden rounded-2xl card-glass-interactive p-5 shadow-glass transition-all duration-300 group ${
+            cashflowSummary.isDeficit
+              ? 'border-red-500/40 bg-red-950/10 hover:border-red-400'
+              : 'hover:border-emerald-500/40'
+          }`}>
+            <div className={`absolute top-0 right-0 w-28 h-28 rounded-full blur-2xl transition-all duration-500 ${
+              cashflowSummary.isDeficit ? 'bg-red-500/10' : 'bg-emerald-500/10 group-hover:bg-emerald-500/20'
+            }`}></div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                4. 잉여현금 (저축/투자 여력)
               </span>
+              <div className={`w-9 h-9 rounded-xl border flex items-center justify-center transition-transform duration-300 group-hover:scale-105 ${
+                cashflowSummary.isDeficit
+                  ? 'bg-red-500/15 border-red-500/30 text-red-400'
+                  : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+              }`}>
+                {cashflowSummary.isDeficit ? <TrendingDown className="w-5 h-5" /> : <PiggyBank className="w-5 h-5" />}
+              </div>
             </div>
+            <div className="mt-3.5">
+              {/* 메인 금액: 총 잉여현금 */}
+              <div className={`text-2xl sm:text-3xl font-extrabold tracking-tight ${
+                cashflowSummary.isDeficit ? 'text-red-400' : 'text-emerald-400'
+              }`}>
+                {cashflowSummary.isAggregate ? '총 ' : ''}{cashflowSummary.total.surplus >= 0 ? '+' : ''}{formatMoney(cashflowSummary.total.surplus)}
+              </div>
 
-            {/* 세부 항목 배지 */}
-            <div className="mt-2 flex flex-wrap gap-1 text-[10px]">
-              <span className="px-1.5 py-0.5 rounded bg-slate-800 text-pink-300">
-                교육비 {formatMoney(cashflowSummary.total.education)}
-              </span>
-              <span className="px-1.5 py-0.5 rounded bg-slate-800 text-rose-300">
-                쇼핑 {formatMoney(cashflowSummary.total.donutDetailed.onlineShopping)}
-              </span>
-              <span className="px-1.5 py-0.5 rounded bg-slate-800 text-emerald-300">
-                마트 {formatMoney(cashflowSummary.total.donutDetailed.groceryMart)}
-              </span>
-              <span className="px-1.5 py-0.5 rounded bg-slate-800 text-red-300">
-                외식 {formatMoney(cashflowSummary.total.donutDetailed.diningOut)}
-              </span>
-              <span className="px-1.5 py-0.5 rounded bg-slate-800 text-orange-300">
-                경조사 {formatMoney(cashflowSummary.total.eventExpense)}
-              </span>
-            </div>
-          </div>
-        </div>
+              {/* 보조 서브텍스트: 월평균 및 저축성향 */}
+              <div className={`mt-2.5 flex items-center space-x-1.5 text-xs rounded-xl px-2.5 py-1.5 font-medium border backdrop-blur-sm ${
+                cashflowSummary.isDeficit
+                  ? 'bg-red-500/10 border-red-500/20 text-red-300'
+                  : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
+              }`}>
+                <PiggyBank className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">
+                  월평균 <strong className="text-white font-bold">{cashflowSummary.avg.surplus >= 0 ? '+' : ''}{formatMoney(cashflowSummary.avg.surplus)}</strong> / 저축성향 <strong className="text-white font-bold">{cashflowSummary.savingsRate}%</strong>
+                </span>
+              </div>
 
-        {/* KPI 4: 잉여현금 (저축/투자 여력) 카드 */}
-        <div className={`relative overflow-hidden rounded-2xl bg-gradient-to-b from-slate-900/90 to-slate-900/40 border p-5 shadow-glass transition-all duration-300 group ${
-          cashflowSummary.isDeficit
-            ? 'border-red-500/40 bg-red-950/10 hover:border-red-400'
-            : 'border-slate-800 hover:border-emerald-500/40'
-        }`}>
-          <div className={`absolute top-0 right-0 w-28 h-28 rounded-full blur-2xl transition-all ${
-            cashflowSummary.isDeficit ? 'bg-red-500/10' : 'bg-emerald-500/10 group-hover:bg-emerald-500/20'
-          }`}></div>
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-              4. 잉여현금 (저축/투자 여력)
-            </span>
-            <div className={`w-9 h-9 rounded-xl border flex items-center justify-center ${
-              cashflowSummary.isDeficit
-                ? 'bg-red-500/15 border-red-500/30 text-red-400'
-                : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
-            }`}>
-              {cashflowSummary.isDeficit ? <TrendingDown className="w-5 h-5" /> : <PiggyBank className="w-5 h-5" />}
+              <p className="mt-2 text-[11px] text-slate-400 truncate">
+                총수입({formatMoney(cashflowSummary.total.income)}) - 총지출({formatMoney(cashflowSummary.total.expense)})
+              </p>
             </div>
-          </div>
-          <div className="mt-3">
-            {/* 메인 금액: 총 잉여현금 */}
-            <div className={`text-2xl sm:text-3xl font-extrabold tracking-tight ${
-              cashflowSummary.isDeficit ? 'text-red-400' : 'text-emerald-400'
-            }`}>
-              {cashflowSummary.isAggregate ? '총 ' : ''}{cashflowSummary.total.surplus >= 0 ? '+' : ''}{formatMoney(cashflowSummary.total.surplus)}
-            </div>
-
-            {/* 보조 서브텍스트: 월평균 및 저축성향 */}
-            <div className={`mt-2.5 flex items-center space-x-1.5 text-xs rounded-lg px-2.5 py-1.5 font-medium border ${
-              cashflowSummary.isDeficit
-                ? 'bg-red-500/10 border-red-500/20 text-red-300'
-                : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
-            }`}>
-              <PiggyBank className="w-3.5 h-3.5 shrink-0" />
-              <span>
-                월평균 <strong className="text-white font-bold">{cashflowSummary.avg.surplus >= 0 ? '+' : ''}{formatMoney(cashflowSummary.avg.surplus)}</strong> / 저축성향 <strong className="text-white font-bold">{cashflowSummary.savingsRate}%</strong>
-              </span>
-            </div>
-
-            <p className="mt-2 text-[11px] text-slate-400">
-              총수입({formatMoney(cashflowSummary.total.income)}) - 총지출({formatMoney(cashflowSummary.total.expense)})
-            </p>
           </div>
         </div>
       </div>

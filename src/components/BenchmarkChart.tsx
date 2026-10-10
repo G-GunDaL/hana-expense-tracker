@@ -12,13 +12,15 @@ import {
   Legend 
 } from 'recharts';
 import { MonthlySummary } from '../types/finance';
+import { usePrivacy } from '../context/PrivacyContext';
 import { 
   BarChart3, 
   AlertCircle, 
   CheckCircle, 
   TrendingUp, 
   Info,
-  Calendar
+  Calendar,
+  Sparkles
 } from 'lucide-react';
 
 interface BenchmarkChartProps {
@@ -26,6 +28,7 @@ interface BenchmarkChartProps {
 }
 
 export const BenchmarkChart: React.FC<BenchmarkChartProps> = ({ summaries }) => {
+  const { formatManwon } = usePrivacy();
   const [selectedYear, setSelectedYear] = useState<string>('ALL');
 
   const safeSummaries = Array.isArray(summaries) ? summaries : [];
@@ -66,11 +69,6 @@ export const BenchmarkChart: React.FC<BenchmarkChartProps> = ({ summaries }) => 
   const avgExpense = safeSummaries.length > 0 ? Math.round(totalExpense / safeSummaries.length) : 0;
   const avgDiffTop20 = avgExpense - BENCHMARK_TOP20;
 
-  // 원화 포맷터
-  const formatManwon = (val: number) => {
-    return `${Math.round(val / 10000).toLocaleString()}만원`;
-  };
-
   // 커스텀 툴팁
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
@@ -80,10 +78,10 @@ export const BenchmarkChart: React.FC<BenchmarkChartProps> = ({ summaries }) => 
       const diffAvg = expense - BENCHMARK_AVG;
 
       return (
-        <div className="bg-slate-900/95 border border-slate-700 p-3.5 rounded-xl shadow-2xl backdrop-blur-md text-xs max-w-[260px]">
-          <p className="font-bold text-slate-200 border-b border-slate-800 pb-1.5 mb-2 flex items-center justify-between">
+        <div className="bg-slate-900/95 border border-slate-700/80 p-3.5 rounded-xl shadow-2xl backdrop-blur-xl text-xs max-w-[270px]">
+          <p className="font-bold text-slate-100 border-b border-slate-800 pb-1.5 mb-2 flex items-center justify-between">
             <span>{data.yearMonth} 가계 지출</span>
-            <span className="text-[10px] text-slate-400 font-normal">통계청 비교</span>
+            <span className="text-[10px] text-brand-300 font-semibold bg-brand-500/20 px-1.5 py-0.5 rounded">통계청 비교</span>
           </p>
 
           <div className="space-y-1.5">
@@ -97,16 +95,16 @@ export const BenchmarkChart: React.FC<BenchmarkChartProps> = ({ summaries }) => 
               <span className="text-rose-400 font-semibold">{formatManwon(data.cardExpense)}</span>
             </div>
 
-            <div className="pt-1.5 mt-1 border-t border-slate-800 space-y-1">
+            <div className="pt-2 mt-1 border-t border-slate-800 space-y-1.5">
               <div className="flex justify-between items-center text-[11px]">
-                <span className="text-emerald-400">전국 4인가구 평균(450만):</span>
+                <span className="text-emerald-400 font-medium">전국 4인가구 평균 (450만):</span>
                 <span className={`font-semibold ${diffAvg > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
                   {diffAvg > 0 ? `+${formatManwon(diffAvg)}` : `${formatManwon(diffAvg)}`}
                 </span>
               </div>
 
               <div className="flex justify-between items-center text-[11px]">
-                <span className="text-orange-400">상위 20%(5분위, 580만):</span>
+                <span className="text-orange-400 font-medium">상위 20% 5분위 (580만):</span>
                 <span className={`font-semibold ${diff5 > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
                   {diff5 > 0 ? `+${formatManwon(diff5)}` : `${formatManwon(diff5)}`}
                 </span>
@@ -120,12 +118,12 @@ export const BenchmarkChart: React.FC<BenchmarkChartProps> = ({ summaries }) => 
   };
 
   return (
-    <div className="rounded-2xl bg-slate-900/80 border border-slate-800 p-4 sm:p-6 shadow-glass">
+    <div className="card-glass rounded-2xl p-5 sm:p-6 shadow-glass relative overflow-hidden">
       
       {/* Header & Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800/80">
         <div className="flex items-center space-x-3">
-          <div className="p-2.5 rounded-xl bg-brand-500/10 border border-brand-500/30 text-brand-400">
+          <div className="w-10 h-10 rounded-xl bg-brand-500/15 border border-brand-500/30 flex items-center justify-center text-brand-400 shrink-0">
             <BarChart3 className="w-5 h-5" />
           </div>
           <div>
@@ -141,14 +139,14 @@ export const BenchmarkChart: React.FC<BenchmarkChartProps> = ({ summaries }) => 
           </div>
         </div>
 
-        {/* 연도 필터 버튼 */}
-        <div className="flex items-center space-x-1.5 self-start sm:self-auto bg-slate-800/80 p-1 rounded-xl border border-slate-700/60">
+        {/* 연도 필터 세그먼트 버튼 */}
+        <div className="flex items-center space-x-1 self-start sm:self-auto bg-slate-900/80 p-1 rounded-xl border border-slate-800 shadow-inner">
           <button
             onClick={() => setSelectedYear('ALL')}
-            className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-all ${
+            className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
               selectedYear === 'ALL'
-                ? 'bg-brand-500 text-white shadow-sm'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-brand-500 text-white shadow-md shadow-brand-500/30'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
             }`}
           >
             전체
@@ -157,10 +155,10 @@ export const BenchmarkChart: React.FC<BenchmarkChartProps> = ({ summaries }) => 
             <button
               key={year}
               onClick={() => setSelectedYear(year)}
-              className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-all ${
+              className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
                 selectedYear === year
-                  ? 'bg-brand-500 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-white'
+                  ? 'bg-brand-500 text-white shadow-md shadow-brand-500/30'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
               }`}
             >
               {year}년
@@ -169,7 +167,7 @@ export const BenchmarkChart: React.FC<BenchmarkChartProps> = ({ summaries }) => 
         </div>
       </div>
 
-      {/* 상태 배지 영역 (요구사항 필수 배너) */}
+      {/* 상태 배지 영역 */}
       <div className="my-4 grid grid-cols-1 md:grid-cols-2 gap-3">
         {/* 최근 월 상태 배지 */}
         <div className="flex items-center justify-between p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200">
@@ -177,7 +175,7 @@ export const BenchmarkChart: React.FC<BenchmarkChartProps> = ({ summaries }) => 
             <AlertCircle className="w-5 h-5 text-amber-400 shrink-0" />
             <div className="text-xs">
               <span className="font-semibold text-amber-300">
-                현재 지출 수준 ({recentMonth?.yearMonth}):{' '}
+                현재 지출 수준 ({recentMonth?.yearMonth || '최근'}):{' '}
               </span>
               <span className="font-bold text-white">
                 5분위(580만) 대비 {recentDiffTop20 >= 0 ? `+${formatManwon(recentDiffTop20)}` : formatManwon(recentDiffTop20)}
@@ -193,7 +191,7 @@ export const BenchmarkChart: React.FC<BenchmarkChartProps> = ({ summaries }) => 
         </div>
 
         {/* 3개년 누적 평균 진단 */}
-        <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-300">
+        <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-900/70 border border-slate-800 text-slate-300">
           <div className="flex items-center space-x-2.5">
             <Info className="w-5 h-5 text-brand-400 shrink-0" />
             <div className="text-xs">
@@ -218,7 +216,7 @@ export const BenchmarkChart: React.FC<BenchmarkChartProps> = ({ summaries }) => 
       <div className="flex flex-wrap items-center justify-between text-xs text-slate-400 mb-2 px-1">
         <div className="flex flex-wrap items-center gap-3 sm:gap-4">
           <span className="flex items-center space-x-1.5">
-            <span className="w-3 h-3 rounded-sm bg-brand-500 inline-block"></span>
+            <span className="w-3 h-3 rounded-sm bg-gradient-to-t from-brand-600 to-brand-400 inline-block"></span>
             <span className="text-slate-300">우리 집 실질 소비지출</span>
           </span>
           <span className="flex items-center space-x-1.5">
@@ -229,8 +227,12 @@ export const BenchmarkChart: React.FC<BenchmarkChartProps> = ({ summaries }) => 
             <span className="w-3.5 h-0.5 bg-orange-400 inline-block border-t-2 border-dashed border-orange-400"></span>
             <span className="text-orange-400 font-medium">소득 상위 20% 5분위 (580만 원)</span>
           </span>
+          <span className="flex items-center space-x-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span>
+            <span className="text-rose-400 font-medium">카드 결제액 추이</span>
+          </span>
         </div>
-        <span className="text-[11px] text-slate-400 mt-1 sm:mt-0">단위: 원</span>
+        <span className="text-[11px] text-slate-500 mt-1 sm:mt-0">단위: 원</span>
       </div>
 
       {/* Recharts 반응형 컨테이너 */}
@@ -241,6 +243,12 @@ export const BenchmarkChart: React.FC<BenchmarkChartProps> = ({ summaries }) => 
               data={chartData}
               margin={{ top: 20, right: 15, left: -10, bottom: 25 }}
             >
+              <defs>
+                <linearGradient id="barPureExpense" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#34d399" stopOpacity={0.9} />
+                  <stop offset="100%" stopColor="#008485" stopOpacity={0.7} />
+                </linearGradient>
+              </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
               <XAxis 
                 dataKey="displayDate" 
@@ -250,69 +258,69 @@ export const BenchmarkChart: React.FC<BenchmarkChartProps> = ({ summaries }) => 
                 interval={typeof window !== 'undefined' && window.innerWidth < 640 ? 2 : 0}
                 dy={10}
               />
-            <YAxis 
-              stroke="#64748b" 
-              fontSize={11}
-              tickLine={false}
-              axisLine={false}
-              tickFormatter={(v) => `${(v / 10000).toLocaleString()}만`}
-              domain={[0, (dataMax: number) => Math.max(8000000, Math.ceil(dataMax * 1.1))]}
-            />
-            <Tooltip content={<CustomTooltip />} />
+              <YAxis 
+                stroke="#64748b" 
+                fontSize={11}
+                tickLine={false}
+                axisLine={false}
+                tickFormatter={(v) => `${(v / 10000).toLocaleString()}만`}
+                domain={[0, (dataMax: number) => Math.max(8000000, Math.ceil(dataMax * 1.1))]}
+              />
+              <Tooltip content={<CustomTooltip />} />
 
-            {/* 정적 기준선 1: 통계청 4인 가구 전국 평균 (450만 원) (초록색 점선) */}
-            <ReferenceLine 
-              y={BENCHMARK_AVG} 
-              stroke="#10b981" 
-              strokeDasharray="4 4" 
-              strokeWidth={2}
-              label={{
-                value: '통계청 평균 (450만)',
-                position: 'insideTopLeft',
-                fill: '#10b981',
-                fontSize: 10,
-                fontWeight: 600,
-                dy: -10
-              }}
-            />
+              {/* 정적 기준선 1: 통계청 4인 가구 전국 평균 (450만 원) */}
+              <ReferenceLine 
+                y={BENCHMARK_AVG} 
+                stroke="#10b981" 
+                strokeDasharray="4 4" 
+                strokeWidth={2}
+                label={{
+                  value: '통계청 평균 (450만)',
+                  position: 'insideTopLeft',
+                  fill: '#10b981',
+                  fontSize: 10,
+                  fontWeight: 600,
+                  dy: -10
+                }}
+              />
 
-            {/* 정적 기준선 2: 통계청 소득 상위 20%(5분위) 4인 가구 평균 (580만 원) (주황색 점선) */}
-            <ReferenceLine 
-              y={BENCHMARK_TOP20} 
-              stroke="#f97316" 
-              strokeDasharray="4 4" 
-              strokeWidth={2}
-              label={{
-                value: '상위 20% (580만)',
-                position: 'insideTopLeft',
-                fill: '#f97316',
-                fontSize: 10,
-                fontWeight: 600,
-                dy: -10
-              }}
-            />
+              {/* 정적 기준선 2: 통계청 소득 상위 20%(5분위) 4인 가구 평균 (580만 원) */}
+              <ReferenceLine 
+                y={BENCHMARK_TOP20} 
+                stroke="#f97316" 
+                strokeDasharray="4 4" 
+                strokeWidth={2}
+                label={{
+                  value: '상위 20% (580만)',
+                  position: 'insideTopLeft',
+                  fill: '#f97316',
+                  fontSize: 10,
+                  fontWeight: 600,
+                  dy: -10
+                }}
+              />
 
-            {/* 실질 소비지출 막대 (Bar) */}
-            <Bar 
-              dataKey="pureExpense" 
-              name="우리 집 실질 소비지출" 
-              fill="#008485" 
-              radius={[4, 4, 0, 0]}
-              maxBarSize={40}
-            />
+              {/* 실질 소비지출 막대 (Bar with Gradient) */}
+              <Bar 
+                dataKey="pureExpense" 
+                name="우리 집 실질 소비지출" 
+                fill="url(#barPureExpense)" 
+                radius={[6, 6, 0, 0]}
+                maxBarSize={38}
+              />
 
-            {/* 카드 결제액 추이 라인 (추가 보조선) */}
-            <Line 
-              type="monotone" 
-              dataKey="cardExpense" 
-              name="카드 결제액" 
-              stroke="#e60050" 
-              strokeWidth={2} 
-              dot={{ r: 2, fill: '#e60050' }}
-              activeDot={{ r: 5 }}
-            />
-          </ComposedChart>
-        </ResponsiveContainer>
+              {/* 카드 결제액 추이 라인 */}
+              <Line 
+                type="monotone" 
+                dataKey="cardExpense" 
+                name="카드 결제액" 
+                stroke="#f43f5e" 
+                strokeWidth={2.5} 
+                dot={{ r: 3, fill: '#f43f5e', stroke: '#881337', strokeWidth: 1 }}
+                activeDot={{ r: 6, fill: '#fb7185' }}
+              />
+            </ComposedChart>
+          </ResponsiveContainer>
         ) : (
           <div className="h-full flex items-center justify-center text-slate-500 text-sm">
             등록된 가계 거래 데이터가 없습니다.
@@ -323,3 +331,4 @@ export const BenchmarkChart: React.FC<BenchmarkChartProps> = ({ summaries }) => 
     </div>
   );
 };
+

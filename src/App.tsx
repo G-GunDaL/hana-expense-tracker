@@ -28,6 +28,8 @@ import { FileUploader } from './components/FileUploader';
 import { CardFileUploader } from './components/CardFileUploader';
 import { SettingsModal } from './components/SettingsModal';
 import { MobileBottomNav } from './components/MobileBottomNav';
+import { TaxPipelineWidget } from './components/TaxPipelineWidget';
+import { AIBriefingPanel } from './components/AIBriefingPanel';
 import { RefreshCw, Cloud, CheckCircle2, AlertTriangle, Layers, ArrowRight } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -243,7 +245,18 @@ export const App: React.FC = () => {
                 </div>
               </div>
 
+              {/* 상단 스마트 재무 브리핑 패널 */}
+              <AIBriefingPanel 
+                stats={coreKPIStats} 
+                latestSummary={monthlySummaries[monthlySummaries.length - 1]} 
+              />
+
               <KPICards stats={coreKPIStats} />
+
+              {/* 5단계 절세 & 자산배분 파이프라인 위젯 */}
+              <TaxPipelineWidget 
+                totalSavedAmount={coreKPIStats.totalInternalTransfer}
+              />
               
               {/* 메인 대시보드 뷰: 벤치마크 차트 & 지출 요약 그리드 */}
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-2">

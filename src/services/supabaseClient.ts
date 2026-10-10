@@ -9,7 +9,7 @@ const STORAGE_KEY_SUMMARIES = 'hana_summaries_cache';
 // 환경변수 (Vite & Vercel NEXT_PUBLIC_ 모두 지원)
 function getEnv(key: string): string {
   const metaEnv = (import.meta as any).env || {};
-  const procEnv = typeof process !== 'undefined' ? (process as any).env || {} : {};
+  const procEnv = typeof (globalThis as any).process !== 'undefined' ? (globalThis as any).process.env || {} : {};
   return metaEnv[key] || procEnv[key] || '';
 }
 

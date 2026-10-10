@@ -4,17 +4,20 @@ import App from './App';
 import './index.css';
 
 import { GlobalErrorBoundary } from './ErrorBoundary';
+import { PrivacyProvider } from './context/PrivacyContext';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <GlobalErrorBoundary>
-      <App />
+      <PrivacyProvider>
+        <App />
+      </PrivacyProvider>
     </GlobalErrorBoundary>
   </React.StrictMode>
 );
 
 // PWA Service Worker 등록 및 즉시 업데이트 감지
-if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
   let refreshing = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (!refreshing) {

@@ -16,6 +16,7 @@ import {
 } from 'recharts';
 import { MonthlySummary, ParsedTx } from '../types/finance';
 import { CATEGORY_COLORS } from '../utils/classifier';
+import { usePrivacy } from '../context/PrivacyContext';
 import { 
   PieChart as PieIcon, 
   TrendingUp, 
@@ -23,7 +24,8 @@ import {
   HeartHandshake, 
   Calendar,
   Layers,
-  ArrowRight
+  ArrowRight,
+  Sparkles
 } from 'lucide-react';
 
 interface ExpenseAnalyticsProps {
@@ -32,12 +34,12 @@ interface ExpenseAnalyticsProps {
 }
 
 export const ExpenseAnalytics: React.FC<ExpenseAnalyticsProps> = ({ summaries, transactions }) => {
+  const { formatManwon } = usePrivacy();
   const [activeSubTab, setActiveSubTab] = useState<'category' | 'trend' | 'card' | 'familyEvent'>('category');
+  const [hoveredCategory, setHoveredCategory] = useState<string | null>(null);
 
   const safeTransactions = Array.isArray(transactions) ? transactions : [];
   const safeSummaries = Array.isArray(summaries) ? summaries : [];
-
-  const formatManwon = (v: number) => `${Math.round(v / 10000).toLocaleString()}만원`;
 
   // 1. 카테고리별 전체 누적 지출 집계
   const categoryTotals: Record<string, number> = {};
@@ -87,24 +89,28 @@ export const ExpenseAnalytics: React.FC<ExpenseAnalyticsProps> = ({ summaries, t
     }));
 
   return (
-    <div className="rounded-2xl bg-slate-900/80 border border-slate-800 p-4 sm:p-6 shadow-glass">
+    <div className="card-glass rounded-2xl p-5 sm:p-6 shadow-glass relative overflow-hidden">
       
       {/* 탭 헤더 */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
-        <div>
-          <h2 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center space-x-2">
-            <Layers className="w-5 h-5 text-brand-400" />
-            <span>다차원 가계 지출 분석</span>
-          </h2>
-          <p className="text-xs text-slate-400">카테고리별 비중, 카드값 추이, 경조사비 상세 흐름</p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800/80">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400 shrink-0">
+            <Layers className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center space-x-2">
+              <span>다차원 가계 지출 분석</span>
+            </h2>
+            <p className="text-xs text-slate-400">카테고리별 비중, 카드값 추이, 경조사비 상세 흐름</p>
+          </div>
         </div>
 
-        {/* 서브 탭 전환 버튼 */}
-        <div className="flex items-center space-x-1 bg-slate-800/80 p-1 rounded-xl border border-slate-700/60 overflow-x-auto">
+        {/* 세그먼트 컨트롤 탭 */}
+        <div className="flex items-center space-x-1 bg-slate-900/80 p-1 rounded-xl border border-slate-800 shadow-inner overflow-x-auto max-w-full">
           <button
             onClick={() => setActiveSubTab('category')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg flex items-center space-x-1.5 whitespace-nowrap transition-all ${
-              activeSubTab === 'category' ? 'bg-brand-500 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg flex items-center space-x-1.5 whitespace-nowrap transition-all ${
+              activeSubTab === 'category' ? 'bg-brand-500 text-white shadow-md shadow-brand-500/30' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
             }`}
           >
             <PieIcon className="w-3.5 h-3.5" />
@@ -112,8 +118,8 @@ export const ExpenseAnalytics: React.FC<ExpenseAnalyticsProps> = ({ summaries, t
           </button>
           <button
             onClick={() => setActiveSubTab('trend')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg flex items-center space-x-1.5 whitespace-nowrap transition-all ${
-              activeSubTab === 'trend' ? 'bg-brand-500 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg flex items-center space-x-1.5 whitespace-nowrap transition-all ${
+              activeSubTab === 'trend' ? 'bg-brand-500 text-white shadow-md shadow-brand-500/30' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
             }`}
           >
             <TrendingUp className="w-3.5 h-3.5" />
@@ -121,8 +127,8 @@ export const ExpenseAnalytics: React.FC<ExpenseAnalyticsProps> = ({ summaries, t
           </button>
           <button
             onClick={() => setActiveSubTab('card')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg flex items-center space-x-1.5 whitespace-nowrap transition-all ${
-              activeSubTab === 'card' ? 'bg-brand-500 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg flex items-center space-x-1.5 whitespace-nowrap transition-all ${
+              activeSubTab === 'card' ? 'bg-brand-500 text-white shadow-md shadow-brand-500/30' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
             }`}
           >
             <CreditCard className="w-3.5 h-3.5" />
@@ -130,8 +136,8 @@ export const ExpenseAnalytics: React.FC<ExpenseAnalyticsProps> = ({ summaries, t
           </button>
           <button
             onClick={() => setActiveSubTab('familyEvent')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-lg flex items-center space-x-1.5 whitespace-nowrap transition-all ${
-              activeSubTab === 'familyEvent' ? 'bg-brand-500 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+            className={`px-3 py-1.5 text-xs font-semibold rounded-lg flex items-center space-x-1.5 whitespace-nowrap transition-all ${
+              activeSubTab === 'familyEvent' ? 'bg-brand-500 text-white shadow-md shadow-brand-500/30' : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
             }`}
           >
             <HeartHandshake className="w-3.5 h-3.5" />
@@ -144,24 +150,26 @@ export const ExpenseAnalytics: React.FC<ExpenseAnalyticsProps> = ({ summaries, t
       {activeSubTab === 'category' && (
         <div className="mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
           
-          {/* 도넛 차트 */}
-          <div className="lg:col-span-6 h-72 sm:h-80 flex items-center justify-center">
+          {/* 도넛 차트 (중앙에 총 지출액 표시) */}
+          <div className="lg:col-span-6 h-72 sm:h-80 relative flex items-center justify-center">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={pieData}
                   cx="50%"
                   cy="50%"
-                  innerRadius={70}
-                  outerRadius={105}
+                  innerRadius={72}
+                  outerRadius={108}
                   paddingAngle={3}
                   dataKey="value"
+                  onMouseEnter={(_, index) => setHoveredCategory(pieData[index]?.name || null)}
+                  onMouseLeave={() => setHoveredCategory(null)}
                 >
                   {pieData.map((entry, index) => (
                     <Cell 
                       key={`cell-${index}`} 
                       fill={CATEGORY_COLORS[entry.name] || '#64748b'} 
-                      stroke="#0f172a"
+                      stroke="#0b1120"
                       strokeWidth={2}
                     />
                   ))}
@@ -172,27 +180,62 @@ export const ExpenseAnalytics: React.FC<ExpenseAnalyticsProps> = ({ summaries, t
                 />
               </PieChart>
             </ResponsiveContainer>
+
+            {/* 도넛 중앙 요약 텍스트 */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
+              <span className="text-[11px] text-slate-400 font-medium">
+                {hoveredCategory || '실질 누적 지출'}
+              </span>
+              <span className="text-sm sm:text-base font-extrabold text-white tracking-tight mt-0.5">
+                {hoveredCategory 
+                  ? formatManwon(categoryTotals[hoveredCategory] || 0)
+                  : formatManwon(totalExpense)
+                }
+              </span>
+            </div>
           </div>
 
-          {/* 카테고리별 리스트 */}
-          <div className="lg:col-span-6 space-y-2.5 max-h-80 overflow-y-auto pr-1">
-            <p className="text-xs font-semibold text-slate-400 mb-2">실질 가계 소비지출 항목별 랭킹</p>
-            {pieData.map((item, idx) => (
+          {/* 카테고리별 랭킹 리스트 (프로그레스 바 포함) */}
+          <div className="lg:col-span-6 space-y-2 max-h-80 overflow-y-auto pr-1">
+            <div className="flex items-center justify-between text-xs font-semibold text-slate-400 mb-2">
+              <span>항목별 지출 랭킹</span>
+              <span>비중 및 누적액</span>
+            </div>
+            {pieData.map((item) => (
               <div 
                 key={item.name}
-                className="flex items-center justify-between p-2.5 rounded-xl bg-slate-800/50 hover:bg-slate-800 border border-slate-800/80 transition-all text-xs"
+                onMouseEnter={() => setHoveredCategory(item.name)}
+                onMouseLeave={() => setHoveredCategory(null)}
+                className={`p-2.5 rounded-xl border transition-all text-xs cursor-pointer ${
+                  hoveredCategory === item.name
+                    ? 'bg-slate-800/90 border-brand-500/50 shadow-md'
+                    : 'bg-slate-900/60 hover:bg-slate-800/60 border-slate-800/80'
+                }`}
               >
-                <div className="flex items-center space-x-2.5">
-                  <span 
-                    className="w-3 h-3 rounded-full shrink-0" 
-                    style={{ backgroundColor: CATEGORY_COLORS[item.name] || '#64748b' }}
-                  />
-                  <div>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2.5">
+                    <span 
+                      className="w-3 h-3 rounded-full shrink-0 shadow-sm" 
+                      style={{ backgroundColor: CATEGORY_COLORS[item.name] || '#64748b' }}
+                    />
                     <span className="font-semibold text-white">{item.name}</span>
-                    <span className="text-[11px] text-slate-400 ml-2">({item.percentage}%)</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-[11px] text-slate-400 font-mono">({item.percentage}%)</span>
+                    <span className="font-bold text-slate-200">{formatManwon(item.value)}</span>
                   </div>
                 </div>
-                <span className="font-bold text-slate-200">{formatManwon(item.value)}</span>
+
+                {/* 프로그레스 바 */}
+                <div className="mt-2 h-1.5 w-full bg-slate-800 rounded-full overflow-hidden flex">
+                  <div 
+                    className="h-full rounded-full transition-all duration-500"
+                    style={{ 
+                      width: `${item.percentage}%`,
+                      backgroundColor: CATEGORY_COLORS[item.name] || '#64748b'
+                    }}
+                  />
+                </div>
               </div>
             ))}
           </div>

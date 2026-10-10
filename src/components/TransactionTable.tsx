@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { ParsedTx } from '../types/finance';
 import { CATEGORIES, CATEGORY_COLORS } from '../utils/classifier';
+import { usePrivacy } from '../context/PrivacyContext';
 import { 
   Search, 
   Filter, 
@@ -13,7 +14,8 @@ import {
   ChevronLeft,
   ChevronRight,
   SlidersHorizontal,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Calendar
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
@@ -26,6 +28,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
   transactions,
   onUpdateTransaction
 }) => {
+  const { formatMoney, isPrivate } = usePrivacy();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [hideInternal, setHideInternal] = useState(true); // 기본: 홍승균 등 자산이동 제외
@@ -133,23 +136,23 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
   };
 
   return (
-    <div className="rounded-2xl bg-slate-900/80 border border-slate-800 p-4 sm:p-6 shadow-glass">
+    <div className="card-glass rounded-2xl p-4 sm:p-6 shadow-glass relative overflow-hidden">
       
       {/* 헤더 & 다운로드 버튼 */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800/80">
         <div>
           <h2 className="text-base sm:text-lg font-bold text-white tracking-tight flex items-center space-x-2">
             <SlidersHorizontal className="w-5 h-5 text-brand-400" />
             <span>거래내역 정밀 필터 & 원본 대조</span>
           </h2>
-          <p className="text-xs text-slate-400">
+          <p className="text-xs text-slate-400 mt-0.5">
             총 {transactions.length.toLocaleString()}건 중 {filteredTransactions.length.toLocaleString()}건 표시
           </p>
         </div>
 
         <button
           onClick={exportToExcel}
-          className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700 transition-all self-start sm:self-auto"
+          className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-200 text-xs font-semibold border border-slate-700/80 transition-all self-start sm:self-auto shadow-sm active:scale-95"
         >
           <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
           <span>필터 결과 엑셀 저장</span>
@@ -167,7 +170,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
             placeholder="적요, 거래점, 구분, 메모 검색..."
             value={searchTerm}
             onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-            className="w-full pl-9 pr-4 py-2 bg-slate-800/80 border border-slate-700 rounded-xl text-xs sm:text-sm text-white placeholder-slate-400 focus:outline-none focus:border-brand-500 transition-all"
+            className="w-full pl-9 pr-4 py-2 bg-slate-900/80 border border-slate-800 rounded-xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 transition-all"
           />
         </div>
 
@@ -176,7 +179,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
           <select
             value={selectedCategory}
             onChange={(e) => { setSelectedCategory(e.target.value); setCurrentPage(1); }}
-            className="w-full py-2 px-3 bg-slate-800/80 border border-slate-700 rounded-xl text-xs sm:text-sm text-white focus:outline-none focus:border-brand-500 transition-all"
+            className="w-full py-2 px-3 bg-slate-900/80 border border-slate-800 rounded-xl text-xs sm:text-sm text-white focus:outline-none focus:border-brand-500 transition-all"
           >
             <option value="ALL">전체 카테고리</option>
             {Object.values(CATEGORIES).map(cat => (
@@ -186,13 +189,13 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
         </div>
 
         {/* 입출금 구분 탭 */}
-        <div className="lg:col-span-2 flex items-center bg-slate-800/80 p-1 rounded-xl border border-slate-700">
+        <div className="lg:col-span-2 flex items-center bg-slate-900/80 p-1 rounded-xl border border-slate-800">
           {(['ALL', 'EXPENSE', 'INCOME'] as const).map(type => (
             <button
               key={type}
               onClick={() => { setTypeFilter(type); setCurrentPage(1); }}
-              className={`flex-1 py-1 text-[11px] font-medium rounded-lg transition-all ${
-                typeFilter === type ? 'bg-brand-500 text-white' : 'text-slate-400 hover:text-white'
+              className={`flex-1 py-1 text-[11px] font-semibold rounded-lg transition-all ${
+                typeFilter === type ? 'bg-brand-500 text-white shadow-sm' : 'text-slate-400 hover:text-white'
               }`}
             >
               {type === 'ALL' ? '전체' : type === 'EXPENSE' ? '출금' : '입금'}
@@ -201,7 +204,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
         </div>
 
         {/* 자산이동 격리 토글 스위치 (Harness Gate 검증의 핵심) */}
-        <div className="lg:col-span-3 flex items-center justify-between sm:justify-end space-x-2 bg-slate-800/40 border border-purple-500/30 px-3 py-1.5 rounded-xl">
+        <div className="lg:col-span-3 flex items-center justify-between sm:justify-end space-x-2 bg-slate-900/60 border border-purple-500/30 px-3 py-1.5 rounded-xl">
           <div className="flex items-center space-x-1.5">
             <ShieldCheck className="w-4 h-4 text-purple-400" />
             <span className="text-xs text-purple-200 font-medium">자산이동 제외</span>
@@ -221,9 +224,9 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
       </div>
 
       {/* 거래내역 반응형 테이블 */}
-      <div className="mt-4 overflow-x-auto rounded-xl border border-slate-800">
+      <div className="mt-4 overflow-x-auto rounded-xl border border-slate-800/80">
         <table className="w-full text-left text-xs text-slate-300">
-          <thead className="bg-slate-800/90 text-slate-400 font-semibold border-b border-slate-800 uppercase tracking-wider text-[11px]">
+          <thead className="bg-slate-900/90 text-slate-400 font-semibold border-b border-slate-800 uppercase tracking-wider text-[11px]">
             <tr>
               <th 
                 className="py-3 px-4 cursor-pointer hover:text-white transition-colors"
@@ -267,7 +270,7 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                 <tr 
                   key={tx.id} 
                   className={`hover:bg-slate-800/40 transition-colors ${
-                    tx.isInternalTransfer ? 'bg-purple-950/10' : ''
+                    tx.isInternalTransfer ? 'bg-purple-950/15' : ''
                   }`}
                 >
                   {/* 일시 */}
@@ -298,12 +301,12 @@ export const TransactionTable: React.FC<TransactionTableProps> = ({
                   <td className={`py-3 px-4 text-right font-bold whitespace-nowrap ${
                     isExpense ? 'text-rose-400' : 'text-emerald-400'
                   }`}>
-                    {isExpense ? `-${amount.toLocaleString()}` : `+${amount.toLocaleString()}`}
+                    {isExpense ? `-${formatMoney(amount, '')}` : `+${formatMoney(amount, '')}`}
                   </td>
 
                   {/* 잔액 */}
                   <td className="py-3 px-3 text-right text-slate-400 whitespace-nowrap hidden md:table-cell">
-                    {tx.balance.toLocaleString()}
+                    {formatMoney(tx.balance, '')}
                   </td>
 
                   {/* 카테고리 */}
